@@ -1,3 +1,14 @@
+/*
+ * control_ims.cpp
+ *
+ *  Created on: Feb 15, 2017
+ *      Author: Daniel Monier-Reyes
+ *
+ *
+ * Routines d'initialisation et d'appel pour le mode de vol IMS1
+ *
+ */
+
 #include "Copter.h"
 #include "ims.h"
 #include <time.h>
@@ -5,63 +16,59 @@
 #define LOG_TIME 600
 
 
-/*
- * Init and run calls for IMS1 flight mode
- */
-
-// Créer une fonction de chargement de paramètres depuis un fichier généré par Matlab, et la mettre dans Init du mode de vol
-    // Objets Correcteurs PID pour des moteurs Protronik Kv750 et une poussée de 2,711Kg
-
-    // PID ROLL : y(n)=14.6972062.x(n)-29.2788573.x(n-1)+14.5818480.x(n-2)+1.8902053.y(n-1)-0.8902053.y(n-2)
-    Correcteur_2nd_Ordre_Discret pid_roll(14.6972062,-29.2788573,14.5818480,1.8902053,-0.8902053);
-
-    // PID PITCH : y(n)=74.4323381.x(n)-148.6091737.x(n-1)+74.1770095.x(n-2)+1.4994958.y(n-1)-0.4994958.y(n-2)
-    Correcteur_2nd_Ordre_Discret pid_pitch(74.4323381,-148.6091737,74.1770095,1.4994958,-0.4994958);
-
-    // PID R : y(n)=0.2856231.x(n)-0.5596865.x(n-1)+0.2740904.x(n-2)+1.9839837.y(n-1)-0.9839837.y(n-2)
-    Correcteur_2nd_Ordre_Discret pid_yaw(0.2856231,-0.5596865,0.2740904,1.9839837,-0.9839837);
-
-    // Offset de calibration AHRS
-    double offset_ahrs_roll;
-    double offset_ahrs_pitch;
-    double offset_ahrs_yaw;
-
-    // Paramètres du drone
-    double b=0.0000069245;  // Coefficient de poussée
-    double d=0.000000757;   // Coefficient de trainée
-    double l=0.256;         // Envergure en mètre
-
-    // Valeurs de pwm min et max pour faire tourner les moteurs
-    int16_t pwm_min,pwm_max;
-
-    // Index des moteurs (nécessaire pour adapter la numérotation des moteurs entre la loi de commande et Arducopter)
-    int16_t w1_index=4;
-    int16_t w2_index=2;
-    int16_t w3_index=1;
-    int16_t w4_index=3;
-
-    // Sortie des PIDs
-    double u_theta, u_phi, u_r, u_z;
-
-    // Commandes (moteurs en rad/s)
-    double w1,w2,w3,w4;
-
-    // Commandes (moteurs en pwm)
-    int16_t w1_pwm,w2_pwm,w3_pwm,w4_pwm;
-
-    // ofstream est utilisé pour écrire un fichier CSV nommé IMS1_CSV_LOG.dat, celui-ci contiendra toutes les informations de vol
-    std::ofstream outf;
-    bool fichier_log_ouvert=false;
-    //long csv_timer=0;
-
-    // Calcul de la période réelle de la boucle soit disant à 100Hz
-    //time_t timer_start,timer_stop;
 
 
-// ims1_init - initialise IMS1 controller
+// --------------------------------------------------------------------
+// Déclaration des variables Globales
+// --------------------------------------------------------------------
+
+// PID ROLL : y(n)=14.6972062.x(n)-29.2788573.x(n-1)+14.5818480.x(n-2)+1.8902053.y(n-1)-0.8902053.y(n-2)
+Correcteur_2nd_Ordre_Discret pid_roll(14.6972062,-29.2788573,14.5818480,1.8902053,-0.8902053);
+
+// PID PITCH : y(n)=74.4323381.x(n)-148.6091737.x(n-1)+74.1770095.x(n-2)+1.4994958.y(n-1)-0.4994958.y(n-2)
+Correcteur_2nd_Ordre_Discret pid_pitch(74.4323381,-148.6091737,74.1770095,1.4994958,-0.4994958);
+
+// PID R : y(n)=0.2856231.x(n)-0.5596865.x(n-1)+0.2740904.x(n-2)+1.9839837.y(n-1)-0.9839837.y(n-2)
+Correcteur_2nd_Ordre_Discret pid_yaw(0.2856231,-0.5596865,0.2740904,1.9839837,-0.9839837);
+
+// Offset de calibration AHRS
+double offset_ahrs_roll;
+double offset_ahrs_pitch;
+double offset_ahrs_yaw;
+
+// Paramètres du drone
+double b=0.0000069245;  // Coefficient de poussée
+double d=0.000000757;   // Coefficient de trainée
+double l=0.256;         // Envergure en mètre
+
+// Valeurs de pwm min et max pour faire tourner les moteurs
+int16_t pwm_min,pwm_max;
+
+// Index des moteurs (nécessaire pour adapter la numérotation des moteurs entre la loi de commande et Arducopter)
+int16_t w1_index=4;
+int16_t w2_index=2;
+int16_t w3_index=1;
+int16_t w4_index=3;
+
+// Sortie des PIDs
+double u_theta, u_phi, u_r, u_z;
+
+// Commandes (moteurs en rad/s)
+double w1,w2,w3,w4;
+
+// Commandes (moteurs en pwm)
+int16_t w1_pwm,w2_pwm,w3_pwm,w4_pwm;
+
+// ofstream est utilisé pour écrire un fichier CSV nommé IMS1_CSV_LOG.dat, celui-ci contiendra toutes les informations de vol
+std::ofstream outf;
+bool fichier_log_ouvert=false;
+
+// ---------------------------------------------------------------------------------------------
+// ims1_init - Routine d'initialisation du mode de vol IMS1
+// ---------------------------------------------------------------------------------------------
 bool Copter::ims1_init(bool ignore_checks)
 {
-    // Offset AHRS
+    // Initialisation des Offset AHRS
     offset_ahrs_roll=ahrs.roll;
     offset_ahrs_pitch=ahrs.pitch;
     offset_ahrs_yaw=ahrs.get_gyro().z;
@@ -70,19 +77,23 @@ bool Copter::ims1_init(bool ignore_checks)
     pwm_min=copter.motors.get_pwm_output_min();
     pwm_max=copter.motors.get_pwm_output_max();
 
+    // Code d'origine
     // if landed and the mode we're switching from does not have manual throttle and the throttle stick is too high
     if (motors.armed() && ap.land_complete && !mode_has_manual_throttle(control_mode) &&
             (get_pilot_desired_throttle(channel_throttle->get_control_in()) > get_non_takeoff_throttle())) {
         return false;
     }
+
+    // Code d'origine
     // set target altitude to zero for reporting
     pos_control.set_alt_target(0);
 
     return true;
 }
 
-// ims1_run - runs the main IMS1 controller
-// should be called at 100hz or more
+// ---------------------------------------------------------------------------------------------
+// ims1_init - Routine d'appel du mode de vol IMS1 à exécuter à 400Hz
+// ---------------------------------------------------------------------------------------------
 void Copter::ims1_run()
 {
     // --------------------------------------------------------------------
@@ -101,16 +112,13 @@ void Copter::ims1_run()
     // Programme d'origine permettant de récupérer les consignes
     // ------------------------------------------------------------------------
 
-    // convert pilot input to lean angles
-    // To-Do: convert get_pilot_desired_lean_angles to return angles as floats
+    // Récupération des consignes roulis et tangage (en centidegrés)
     get_pilot_desired_lean_angles(channel_roll->get_control_in(), channel_pitch->get_control_in(), target_roll, target_pitch, aparm.angle_max);
 
-    // get pilot's desired yaw rate
-    // TEMP
+    // Récupération de la consigne en lacet (en centidegrés par seconde)
     target_yaw_rate = get_pilot_desired_yaw_rate(channel_yaw->get_control_in());
 
-    // get pilot's desired throttle
-    // TEMP
+    // Récupération de la consigne en poussée (valeur entre 0 et 1)
     pilot_throttle_scaled = get_pilot_desired_throttle(channel_throttle->get_control_in());
 
     // ------------------------------------------------------------------------
@@ -137,7 +145,7 @@ void Copter::ims1_run()
     //hal.console->printf("AHRS - Roll: %f Pitch:%f R:%f\n",ahrs.roll, ahrs.pitch, ahrs.get_gyro().z);
 
     // ------------------------------------------------------------------------
-    // Spécifique Ardupilot - Code d'origine pour gérer l'armement des moteurs
+    // Spécifique Ardupilot - Gestion de l'armement des moteurs
     // ------------------------------------------------------------------------
 
     // if not armed set throttle to zero and exit immediately
@@ -176,6 +184,7 @@ void Copter::ims1_run()
             strcat(log_file_name,".dat");
 
             outf.open(log_file_name); // Création d'un fichier de log unique
+
             // Ecriture d'une entête pour savoir à quoi correspond les données
             outf << "AHRS.Roll,AHRS.Pitch,AHRS.Yaw,AHRS.P,AHRS.Q,AHRS.R,RC.Roll,RC.Pitch,RC.R,RC.Thrust,Uphi,Utheta,Ur,w1,w2,w3,w4,w1_pwm,w2_pwm,w3_pwm,w4_pwm,pilot_throttle_scaled" << std::endl;
 
@@ -183,9 +192,8 @@ void Copter::ims1_run()
         }
     }
 
-    // ------------------------------------------------------------------------
-    // Réinitialisation du flag d'atterissage
-    // ------------------------------------------------------------------------
+
+    // Code d'origine - Réinitialisation du flag d'atterissage
     set_land_complete(false);
 
     // ------------------------------------------------------------------------
@@ -203,7 +211,7 @@ void Copter::ims1_run()
     // Calcul PID Yaw
     pid_yaw.cycle(target_yaw_rate_rad-ahrs.get_gyro().z+offset_ahrs_yaw);
 
-    // Calcul PID Roll
+    // Calcul PID Roll - Version sans prise en compte des offset de calibrage de l'AHRS au niveau du calcul de l'erreur
     //pid_roll.cycle(target_roll_rad-ahrs.roll);
     // Calcul PID Pitch
     //pid_pitch.cycle(target_pitch_rad-ahrs.pitch);
@@ -222,12 +230,13 @@ void Copter::ims1_run()
     w3=sqrt(-(d*u_phi-d*u_theta-b*l*u_r+d*l*u_z)/(b*d*l))/2;
     w4=sqrt((d*u_phi-d*u_theta+b*l*u_r-d*l*u_z)/(b*d*l))/2;
 
-    // Calcul des valeurs de PWM à envoyer à chaque moteur en fonction de w1, w2, w3, w4
+    // Calcul des valeurs de PWM à envoyer à chaque moteur en fonction de w1, w2, w3, w4 - A commenter pour les tests de poussée
     w1_pwm=((w1*(pwm_max-pwm_min))/1393.3)+pwm_min;
     w2_pwm=((w2*(pwm_max-pwm_min))/1393.3)+pwm_min;
     w3_pwm=((w3*(pwm_max-pwm_min))/1393.3)+pwm_min;
     w4_pwm=((w4*(pwm_max-pwm_min))/1393.3)+pwm_min;
 
+    // A décommenter pour les tests de poussée
     //w1_pwm=pilot_throttle_scaled*(pwm_max-pwm_min)+pwm_min;
     //w2_pwm=pilot_throttle_scaled*(pwm_max-pwm_min)+pwm_min;
     //w3_pwm=pilot_throttle_scaled*(pwm_max-pwm_min)+pwm_min;
@@ -251,11 +260,6 @@ void Copter::ims1_run()
     // --------------------------------------------------------------------
     // Ecriture des logs
     // --------------------------------------------------------------------
-
-    // Horodatage du début
-    //time(&timer_start);
-    //outf << ctime(&timer_start);
-    //outf << std::endl;
 
     // A mettre dans une fonction
     // "AHRS.Roll,AHRS.Pitch,AHRS.Yaw,AHRS.P,AHRS.Q,AHRS.R,RC.Roll,RC.Pitch,RC.R,RC.Thrust,Uphi,Utheta,Ur,w1,w2,w3,w4,w1_pwm,w2_pwm,w3_pwm,w4_pwm,pilot_throttle_scaled"
@@ -314,9 +318,5 @@ void Copter::ims1_run()
     motors.output_test(w2_index,w2_pwm);
     motors.output_test(w3_index,w3_pwm);
     motors.output_test(w4_index,w4_pwm);
-
-
-
-
 
 }
