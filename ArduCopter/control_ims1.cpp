@@ -22,14 +22,14 @@
 // Déclaration des variables Globales
 // --------------------------------------------------------------------
 
-// PID ROLL : y(n)=14.6972062.x(n)-29.2788573.x(n-1)+14.5818480.x(n-2)+1.8902053.y(n-1)-0.8902053.y(n-2)
-Correcteur_2nd_Ordre_Discret pid_roll(14.6972062,-29.2788573,14.5818480,1.8902053,-0.8902053);
+// PID ROLL : y(n)=32.2486.x(n)-64.1172.x(n-1)+31.8696.x(n-2)+1.8397.y(n-1)-0.83971.y(n-2)
+Correcteur_2nd_Ordre_Discret pid_roll(32.2486,-64.1172,31.8696,1.8397,-0.83971);
 
-// PID PITCH : y(n)=74.4323381.x(n)-148.6091737.x(n-1)+74.1770095.x(n-2)+1.4994958.y(n-1)-0.4994958.y(n-2)
-Correcteur_2nd_Ordre_Discret pid_pitch(74.4323381,-148.6091737,74.1770095,1.4994958,-0.4994958);
+// PID PITCH : y(n)=35.9066.x(n)-71.3902.x(n-1)+35.4847.x(n-2)+1.8397.y(n-1)-0.83971.y(n-2)
+Correcteur_2nd_Ordre_Discret pid_pitch(35.9066,-71.3902,35.4847,1.8397,-0.83971);
 
-// PID R : y(n)=0.2856231.x(n)-0.5596865.x(n-1)+0.2740904.x(n-2)+1.9839837.y(n-1)-0.9839837.y(n-2)
-Correcteur_2nd_Ordre_Discret pid_yaw(0.2856231,-0.5596865,0.2740904,1.9839837,-0.9839837);
+// PI R : y(n)=0.65646.x(n)-0.654.x(n-1)+1.y(n-1)
+Correcteur_1er_Ordre_Discret pid_yaw(0.65646,-0.654,1);
 
 // Offset de calibration AHRS
 double offset_ahrs_roll;

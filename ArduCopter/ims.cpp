@@ -21,7 +21,7 @@ double Correcteur_2nd_Ordre_Discret::getyn()
     return yn;
 }
 
-// Réinitialisation des valeurs de l'équation récurrente
+// Réinitialisation des valeurs de l'équation récurrente du 2nd ordre
 void Correcteur_2nd_Ordre_Discret::reset(void)
 {
     xn=0;
@@ -32,7 +32,16 @@ void Correcteur_2nd_Ordre_Discret::reset(void)
     yn_2=0;
 }
 
-// Calcul d'un cycle de l'équation récurrente
+// Réinitialisation des valeurs de l'équation récurrente du 1er ordre
+void Correcteur_1er_Ordre_Discret::reset(void)
+{
+    xn=0;
+    xn_1=0;
+    yn=0;
+    yn_1=0;
+}
+
+// Calcul d'un cycle de l'équation récurrente du 2nd ordre
 void Correcteur_2nd_Ordre_Discret::cycle(double new_xn)
 {
     xn=new_xn;
@@ -42,6 +51,17 @@ void Correcteur_2nd_Ordre_Discret::cycle(double new_xn)
     yn_2=yn_1;
     yn_1=yn;
     xn_2=xn_1;
+    xn_1=xn;
+}
+
+// Calcul d'un cycle de l'équation récurrente du 1er ordre
+void Correcteur_1er_Ordre_Discret::cycle(double new_xn)
+{
+    xn=new_xn;
+
+    yn=(cxn*xn)+(cxn_1*xn_1)+(cyn_1*yn_1);
+
+    yn_1=yn;
     xn_1=xn;
 }
 

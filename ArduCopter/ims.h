@@ -60,6 +60,41 @@ private:
     double yn_1,yn_2;                    // Valeurs successives de la sortie y(n-1), y(n-2)
 };
 
+class Correcteur_1er_Ordre_Discret
+{
+public:
+    // Constructeur de la classe prenant en paramètre les coefficients de l'équation récurrente
+    Correcteur_1er_Ordre_Discret(double m_cxn=0,double m_cxn_1=0,double m_cyn_1=0)
+    {
+        cxn=m_cxn;
+        cxn_1=m_cxn_1;
+        cyn_1=m_cyn_1;
+
+        xn=0;
+        xn_1=0;
+        yn=0;
+        yn_1=0;
+
+    }
+
+    // Calcul d'un cycle de l'équation récurrente
+    void cycle(double new_xn);
+
+    // Récupération de la valeur de sortie de l'équation récurrente y(n)
+    double getyn();
+
+    // Réinitialisation des valeurs de l'équation récurrente
+    void reset(void);
+
+
+private:
+    double cxn,cxn_1,cyn_1;  // Coefficients de l'équation récurrente
+    double xn;                          // Valeur de l'échantillon d'entrée x(n)
+    double xn_1;                    	// Valeurs successives des échantillons d'entrée x(n-1)
+    double yn;                          // Valeur de la sortie y(n)
+    double yn_1;                    	// Valeurs successives de la sortie y(n-1)
+};
+
 // ---------------------------------------------------------------------------
 // Déclaration des fonctions
 // ---------------------------------------------------------------------------
