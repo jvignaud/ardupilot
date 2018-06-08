@@ -110,6 +110,7 @@ enum control_mode_t {
 	IMS1 =		   31,	// Custom Flight Mode create by IMS Lab at Bordeaux University
 	IMS2 =		   32,	// Custom Flight Mode create by IMS Lab at Bordeaux University
 	IMS3 =		   33,	// Custom Flight Mode create by IMS Lab at Bordeaux University
+    IMS4 =		   34,	// Custom Flight Mode create by IMS Lab at Bordeaux University
 };
 
 enum mode_reason_t {

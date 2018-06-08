@@ -1,13 +1,11 @@
 /*
- * control_ims3.cpp
+ * control_ims4.cpp
  *
- *  Created on: Jun 6, 2018
+ *  Created on: Jun 8, 2018
  *      Author: Daniel Monier-Reyes
  *
  *
- * Routines d'initialisation et d'appel pour le mode de vol IMS3
- * Modification de la ligne 235 : u_z. On prend en compte l'offset d'AHRS
- * On rajoute un offset aux PWM des moteurs afins qu'ils "s'enclenche" plus vite (peu concluant)
+ * Routines d'initialisation et d'appel pour le mode de vol IMS4
  * 
  */
 
@@ -17,7 +15,7 @@
 
 #define LOG_TIME 600
 
-#define OFFSET_PWM 200
+#define OFFSET_PWM 75
 
 
 // --------------------------------------------------------------------
@@ -25,21 +23,24 @@
 // --------------------------------------------------------------------
 
 // PID ROLL : y(n)=32.2486.x(n)-64.1172.x(n-1)+31.8696.x(n-2)+1.8397.y(n-1)-0.83971.y(n-2)
-Correcteur_2nd_Ordre_Discret pid_roll3(32.2486,-64.1172,31.8696,1.8397,-0.83971);
+Correcteur_2nd_Ordre_Discret pid_roll4(32.2486,-64.1172,31.8696,1.8397,-0.83971);
 
 // PID PITCH : y(n)=35.9066.x(n)-71.3902.x(n-1)+35.4847.x(n-2)+1.8397.y(n-1)-0.83971.y(n-2)
-Correcteur_2nd_Ordre_Discret pid_pitch3(35.9066,-71.3902,35.4847,1.8397,-0.83971);
+Correcteur_2nd_Ordre_Discret pid_pitch4(35.9066,-71.3902,35.4847,1.8397,-0.83971);
 
 // PI R : y(n)=0.65646.x(n)-0.654.x(n-1)+1.y(n-1)
-Correcteur_1er_Ordre_Discret pi_yaw3(0.65646,-0.654,1);
+Correcteur_1er_Ordre_Discret pi_yaw4(0.65646,-0.654,1);
 
-// ofstream est utilisé pour écrire un fichier CSV nommé IMS3_CSV_LOG.dat, celui-ci contiendra toutes les informations de vol
-std::ofstream outf3;
+// ofstream est utilisé pour écrire un fichier CSV nommé IMS4_CSV_LOG.dat, celui-ci contiendra toutes les informations de vol
+std::ofstream outf4;
+
+// Variable permettant de récupérer les valeurs précédentes des PWM
+int16_t  w1_pwm_prec = 0,w2_pwm_prec = 0,w3_pwm_prec = 0,w4_pwm_prec = 0;
 
 // ---------------------------------------------------------------------------------------------
-// ims3_init - Routine d'initialisation du mode de vol IMS3
+// ims4_init - Routine d'initialisation du mode de vol IMS4
 // ---------------------------------------------------------------------------------------------
-bool Copter::ims3_init(bool ignore_checks)
+bool Copter::ims4_init(bool ignore_checks)
 {
     // Initialisation des Offset AHRS
     offset_ahrs_roll=ahrs.roll;
@@ -65,9 +66,9 @@ bool Copter::ims3_init(bool ignore_checks)
 }
 
 // ---------------------------------------------------------------------------------------------
-// ims3_init - Routine d'appel du mode de vol IMS3 à exécuter à 400Hz
+// ims4_init - Routine d'appel du mode de vol IMS4 à exécuter à 400Hz
 // ---------------------------------------------------------------------------------------------
-void Copter::ims3_run()
+void Copter::ims4_run()
 {
     // --------------------------------------------------------------------
     // Déclaration des variables
@@ -127,12 +128,12 @@ void Copter::ims3_run()
         attitude_control.set_throttle_out_unstabilized(0,true,g.throttle_filt);
 
         // Reset des PIDs pour éviter qu'ils divergent
-        pid_roll3.reset();
-        pid_pitch3.reset();
-        pi_yaw3.reset();
+        pid_roll4.reset();
+        pid_pitch4.reset();
+        pi_yaw4.reset();
 
         if (fichier_log_ouvert==true) { // Si le fichier de log est ouvert alors le fermer
-            outf3.close();
+            outf4.close();
             fichier_log_ouvert=false;
         }
 
@@ -153,15 +154,15 @@ void Copter::ims3_run()
             strftime (buffer,30,"%F--%H-%M-%S",timeinfo);
 
             /*création du fichier à l'emplacement '/home/pi/ardupilot/build/navio2/bin/' sur le drone
-            avec pour nom : "IMS3_CSV_LOG-<année>-<mois>-<jour>-<heure>-<minute>-<seconde>.dat"*/
-            strcpy(log_file_name,"/home/pi/ardupilot/build/navio2/bin/IMS3_CSV_LOG-");
+            avec pour nom : "IMS4_CSV_LOG-<année>-<mois>-<jour>-<heure>-<minute>-<seconde>.dat"*/
+            strcpy(log_file_name,"/home/pi/ardupilot/build/navio2/bin/IMS4_CSV_LOG-");
             strcat(log_file_name,buffer);
             strcat(log_file_name,".dat");
 
-            outf3.open(log_file_name); // Création d'un fichier de log unique
+            outf4.open(log_file_name); // Création d'un fichier de log unique
 
             // Ecriture d'une entête pour savoir à quoi correspond les données
-            outf3 << "AHRS.Roll,AHRS.Pitch,AHRS.Yaw,AHRS.P,AHRS.Q,AHRS.R,RC.Roll,RC.Pitch,RC.R,RC.Thrust,Uphi,Utheta,Ur,w1,w2,w3,w4,w1_pwm,w2_pwm,w3_pwm,w4_pwm,pilot_throttle_scaled" << std::endl;
+            outf4 << "AHRS.Roll,AHRS.Pitch,AHRS.Yaw,AHRS.P,AHRS.Q,AHRS.R,RC.Roll,RC.Pitch,RC.R,RC.Thrust,Uphi,Utheta,Ur,w1,w2,w3,w4,w1_pwm,w2_pwm,w3_pwm,w4_pwm,pilot_throttle_scaled" << std::endl;
 
             fichier_log_ouvert=true;
         }
@@ -180,23 +181,23 @@ void Copter::ims3_run()
     // ------------------------------------------------------------------------
 
     // Calcul PID Roll
-    pid_roll3.cycle(target_roll_rad-ahrs.roll+offset_ahrs_roll);
+    pid_roll4.cycle(target_roll_rad-ahrs.roll+offset_ahrs_roll);
     // Calcul PID Pitch
-    pid_pitch3.cycle(target_pitch_rad-ahrs.pitch+offset_ahrs_pitch);
+    pid_pitch4.cycle(target_pitch_rad-ahrs.pitch+offset_ahrs_pitch);
     // Calcul PID Yaw
-    pi_yaw3.cycle(target_yaw_rate_rad-ahrs.get_gyro().z+offset_ahrs_yaw);
+    pi_yaw4.cycle(target_yaw_rate_rad-ahrs.get_gyro().z+offset_ahrs_yaw);
 
     // Calcul PID Roll - Version sans prise en compte des offset de calibrage de l'AHRS au niveau du calcul de l'erreur
-    //pid_roll3.cycle(target_roll_rad-ahrs.roll);
+    //pid_roll4.cycle(target_roll_rad-ahrs.roll);
     // Calcul PID Pitch
-    //pid_pitch3.cycle(target_pitch_rad-ahrs.pitch);
+    //pid_pitch4.cycle(target_pitch_rad-ahrs.pitch);
     // Calcul PID Yaw
-    //pi_yaw3.cycle(target_yaw_rate_rad-ahrs.get_gyro().z);
+    //pi_yaw4.cycle(target_yaw_rate_rad-ahrs.get_gyro().z);
 
     // Assignation des sorties de PIDs
-    u_phi=pid_roll3.getyn();
-    u_theta=pid_pitch3.getyn();
-    u_r=pi_yaw3.getyn();
+    u_phi=pid_roll4.getyn();
+    u_theta=pid_pitch4.getyn();
+    u_r=pi_yaw4.getyn();
     u_z=-target_throttle_newton/(cosf(ahrs.roll-offset_ahrs_roll)*cosf(ahrs.pitch-offset_ahrs_pitch));
 
     // Calcul de la valeur des commandes
@@ -207,10 +208,16 @@ void Copter::ims3_run()
 
     // Calcul des valeurs de PWM à envoyer à chaque moteur en fonction de w1, w2, w3, w4 - A commenter pour les tests de poussée
     // La valeur pwm est dans un intervalle de valeur 1000 ~ 200
-    w1_pwm=(w1/ROTATION_MAX)*(pwm_max-pwm_min)+pwm_min+OFFSET_PWM;
-    w2_pwm=(w2/ROTATION_MAX)*(pwm_max-pwm_min)+pwm_min+OFFSET_PWM;
-    w3_pwm=(w3/ROTATION_MAX)*(pwm_max-pwm_min)+pwm_min+OFFSET_PWM;
-    w4_pwm=(w4/ROTATION_MAX)*(pwm_max-pwm_min)+pwm_min+OFFSET_PWM;
+    w1_pwm=(w1/ROTATION_MAX)*(pwm_max-(pwm_min+OFFSET_PWM))+pwm_min+OFFSET_PWM;
+    w2_pwm=(w2/ROTATION_MAX)*(pwm_max-(pwm_min+OFFSET_PWM))+pwm_min+OFFSET_PWM;
+    w3_pwm=(w3/ROTATION_MAX)*(pwm_max-(pwm_min+OFFSET_PWM))+pwm_min+OFFSET_PWM;
+    w4_pwm=(w4/ROTATION_MAX)*(pwm_max-(pwm_min+OFFSET_PWM))+pwm_min+OFFSET_PWM;
+
+    // A décommenter pour les tests de poussée
+    //w1_pwm=pilot_throttle_scaled*(pwm_max-pwm_min)+pwm_min;
+    //w2_pwm=pilot_throttle_scaled*(pwm_max-pwm_min)+pwm_min;
+    //w3_pwm=pilot_throttle_scaled*(pwm_max-pwm_min)+pwm_min;
+    //w4_pwm=pilot_throttle_scaled*(pwm_max-pwm_min)+pwm_min;
 
     // Test pour protection des moteurs
     if (w1_pwm > pwm_max)
@@ -221,13 +228,18 @@ void Copter::ims3_run()
         w3_pwm = pwm_max;
     if (w4_pwm > pwm_max)
         w4_pwm = pwm_max;
-    
-    // A décommenter pour les tests de poussée
-    //w1_pwm=pilot_throttle_scaled*(pwm_max-pwm_min)+pwm_min;
-    //w2_pwm=pilot_throttle_scaled*(pwm_max-pwm_min)+pwm_min;
-    //w3_pwm=pilot_throttle_scaled*(pwm_max-pwm_min)+pwm_min;
-    //w4_pwm=pilot_throttle_scaled*(pwm_max-pwm_min)+pwm_min;
 
+    if (w1_pwm < pwm_min + OFFSET_PWM  && w2_pwm < pwm_min + OFFSET_PWM && w3_pwm >= pwm_min + OFFSET_PWM && w4_pwm >= pwm_min + OFFSET_PWM) { // demande d'un lacet max à droite
+        w1_pwm = pwm_min;
+        w2_pwm = pwm_min;       //on force la valeur des pwms encoyées au moteur 1 et 2 à la valeur pwm_min
+        w3_pwm = w3_pwm_prec;
+        w4_pwm = w4_pwm_prec;    //on force la valeur des pwms encoyées au moteur 3 et 4 à la valeur a l'intant t-1
+    }
+    
+    w1_pwm_prec = w1_pwm;
+    w2_pwm_prec = w2_pwm;
+    w3_pwm_prec = w3_pwm;
+    w4_pwm_prec = w4_pwm;
     // A mettre dans une zone de debug
 
     // Affichage des valeurs PMW des moteurs
@@ -250,55 +262,55 @@ void Copter::ims3_run()
     // A mettre dans une fonction
     // "AHRS.Roll,AHRS.Pitch,AHRS.Yaw,AHRS.P,AHRS.Q,AHRS.R,RC.Roll,RC.Pitch,RC.R,RC.Thrust,Uphi,Utheta,Ur,w1,w2,w3,w4,w1_pwm,w2_pwm,w3_pwm,w4_pwm,pilot_throttle_scaled"
 
-        outf3 << ahrs.roll;
-        outf3 << ",";
-        outf3 << ahrs.pitch;
-        outf3 << ",";
-        outf3 << ahrs.yaw;
-        outf3 << ",";
-        outf3 << ahrs.get_gyro().x;
-        outf3 << ",";
-        outf3 << ahrs.get_gyro().y;
-        outf3 << ",";
-        outf3 << ahrs.get_gyro().z;
-        outf3 << ",";
-        outf3 << target_roll_rad;
-        outf3 << ",";
-        outf3 << target_pitch_rad;
-        outf3 << ",";
-        outf3 << target_yaw_rate_rad;
-        outf3 << ",";
-        outf3 << target_throttle_newton;
-        outf3 << ",";
-        outf3 << pid_roll3.getyn();
-        outf3 << ",";
-        outf3 << pid_pitch3.getyn();
-        outf3 << ",";
-        outf3 << pi_yaw3.getyn();
-        outf3 << ",";
-        outf3 << w1;
-        outf3 << ",";
-        outf3 << w2;
-        outf3 << ",";
-        outf3 << w3;
-        outf3 << ",";
-        outf3 << w4;
-        outf3 << ",";
-        outf3 << w1_pwm;
-        outf3 << ",";
-        outf3 << w2_pwm;
-        outf3 << ",";
-        outf3 << w3_pwm;
-        outf3 << ",";
-        outf3 << w4_pwm;
-        outf3 << ",";
-        outf3 << pilot_throttle_scaled;
-        outf3 << std::endl;
+        outf4 << ahrs.roll;
+        outf4 << ",";
+        outf4 << ahrs.pitch;
+        outf4 << ",";
+        outf4 << ahrs.yaw;
+        outf4 << ",";
+        outf4 << ahrs.get_gyro().x;
+        outf4 << ",";
+        outf4 << ahrs.get_gyro().y;
+        outf4 << ",";
+        outf4 << ahrs.get_gyro().z;
+        outf4 << ",";
+        outf4 << target_roll_rad;
+        outf4 << ",";
+        outf4 << target_pitch_rad;
+        outf4 << ",";
+        outf4 << target_yaw_rate_rad;
+        outf4 << ",";
+        outf4 << target_throttle_newton;
+        outf4 << ",";
+        outf4 << pid_roll4.getyn();
+        outf4 << ",";
+        outf4 << pid_pitch4.getyn();
+        outf4 << ",";
+        outf4 << pi_yaw4.getyn();
+        outf4 << ",";
+        outf4 << w1;
+        outf4 << ",";
+        outf4 << w2;
+        outf4 << ",";
+        outf4 << w3;
+        outf4 << ",";
+        outf4 << w4;
+        outf4 << ",";
+        outf4 << w1_pwm;
+        outf4 << ",";
+        outf4 << w2_pwm;
+        outf4 << ",";
+        outf4 << w3_pwm;
+        outf4 << ",";
+        outf4 << w4_pwm;
+        outf4 << ",";
+        outf4 << pilot_throttle_scaled;
+        outf4 << std::endl;
 
     // ---------------------------------------------------------------------
     // Gestion Moteurs
     // ---------------------------------------------------------------------
-    
+
     // output_test - spin a motor at the pwm value specified
     // motor_seq is the motor's sequence number from 1 to the number of motors on the frame
     // pwm value is an actual pwm value that will be output, normally in the range of 1000 ~ 2000

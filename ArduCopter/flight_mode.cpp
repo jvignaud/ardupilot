@@ -52,6 +52,10 @@ bool Copter::set_mode(control_mode_t mode, mode_reason_t reason)
 		case IMS3: // Custom IMS Flight Mode
             success = ims3_init(ignore_checks);
             break;
+
+        case IMS4: // Custom IMS Flight Mode
+            success = ims4_init(ignore_checks);
+            break;
 			
         case ALT_HOLD:
             success = althold_init(ignore_checks);
@@ -199,6 +203,10 @@ void Copter::update_flight_mode()
 
 		case IMS3: // Custom IMS Flight Mode
             ims3_run();
+            break;
+
+        case IMS4: // Custom IMS Flight Mode
+            ims4_run();
             break;
 
         case ALT_HOLD:
@@ -351,6 +359,7 @@ bool Copter::mode_has_manual_throttle(control_mode_t mode)
 		case IMS1: // Custom IMS Flight Mode
 		case IMS2: // Custom IMS Flight Mode
 		case IMS3: // Custom IMS Flight Mode
+        case IMS4: // Custom IMS Flight Mode
             return true;
         default:
             return false;
@@ -361,7 +370,7 @@ bool Copter::mode_has_manual_throttle(control_mode_t mode)
 //  arming_from_gcs should be set to true if the arming request comes from the ground station
 bool Copter::mode_allows_arming(control_mode_t mode, bool arming_from_gcs)
 {
-    if (mode_has_manual_throttle(mode) || mode == IMS1 || mode == IMS2 || mode == IMS3 || mode == LOITER || mode == ALT_HOLD || mode == POSHOLD || mode == DRIFT || mode == SPORT || mode == THROW || (arming_from_gcs && (mode == GUIDED || mode == GUIDED_NOGPS))) {
+    if (mode_has_manual_throttle(mode) || mode == IMS1 || mode == IMS2 || mode == IMS3 || mode == IMS4 || mode == LOITER || mode == ALT_HOLD || mode == POSHOLD || mode == DRIFT || mode == SPORT || mode == THROW || (arming_from_gcs && (mode == GUIDED || mode == GUIDED_NOGPS))) {
         return true;
     }
     return false;
@@ -405,6 +414,9 @@ void Copter::print_flight_mode(AP_HAL::BetterStream *port, uint8_t mode)
         break;
     case IMS3: // Custom IMS Flight Mode
         port->print("IMS3");
+        break;
+    case IMS4: // Custom IMS Flight Mode
+        port->print("IMS4");
         break;
     case ACRO:
         port->print("ACRO");

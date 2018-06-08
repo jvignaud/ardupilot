@@ -923,6 +923,8 @@ private:
     void ims2_run();                    // Custom IMS Flight Mode
     bool ims3_init(bool ignore_checks); // Custom IMS Flight Mode
     void ims3_run();                    // Custom IMS Flight Mode
+    bool ims4_init(bool ignore_checks); // Custom IMS Flight Mode
+    void ims4_run();                    // Custom IMS Flight Mode
     void crash_check();
     void parachute_check();
     void parachute_release();
