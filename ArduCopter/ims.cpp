@@ -15,8 +15,14 @@
 // Fonctions de la classe représentant une equation récurrente du second ordre
 // ----------------------------------------------------------------------------
 
-// Récupération de la valeur de sortie de l'équation récurrente y(n)
+// Récupération de la valeur de sortie de l'équation récurrente y(n) du 2nd ordre
 double Correcteur_2nd_Ordre_Discret::getyn()
+{
+    return yn;
+}
+
+// Récupération de la valeur de sortie de l'équation récurrente y(n) du 1er ordre
+double Correcteur_1er_Ordre_Discret::getyn()
 {
     return yn;
 }
@@ -91,6 +97,4 @@ void Correcteur_1er_Ordre_Discret::cycle(double new_xn)
     myfile.close();
 
 }
-
-
 */

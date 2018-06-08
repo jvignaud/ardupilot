@@ -12,9 +12,63 @@
 #include <fstream>
 #include <iostream>
 
+#define LOG_TIME 600
+
+/* Paramètres à changer selon le drone */
+
+/*Paramètres du drone*/
+#define COEF_POUSSEE 0.0000069245
+#define COEF_TRAINEE 0.000000757
+#define ENVERGURE 0.256 //en mètre
+
+/*Paramètre moteurs*/
+#define ROTATION_MAX 1393.3 //en rad/s
+
+
+
 // -----------------------------------------------------------------------
 // Déclaration des variables
 // -----------------------------------------------------------------------
+
+/* /!\ warnings lors de la compilation du programme /!\ 
+ * utilisation de "static" dans ims.h car on utilise ses variables
+ * plusieurs fois dans des fichiers .c différents ("control_ims1.c",
+ * "control_ims2.c" et "control_ims3.c").
+ * Cela permet d'éviter l'erreur "définition multiple".
+ * A long terme, on gardera qu'un seul fichier control_ims.c donc 
+ * on pourra remettre ces variables globales dans ce fichier.
+ */
+
+// Offset de calibration AHRS
+static double offset_ahrs_roll;
+static double offset_ahrs_pitch;
+static double offset_ahrs_yaw;
+
+// Paramètres du drone
+static double b=COEF_POUSSEE;  	// Coefficient de poussée
+static double d=COEF_TRAINEE;  	// Coefficient de trainée
+static double l=ENVERGURE;    	// Envergure en mètre
+
+// Valeurs de pwm min et max pour faire tourner les moteurs
+static int16_t pwm_min,pwm_max;
+
+// Index des moteurs (nécessaire pour adapter la numérotation des moteurs entre la loi de commande et Arducopter)
+static const int16_t w1_index=4;                 // Représentation du drone en configuration en x
+static const int16_t w2_index=2;                 //    W1   W3         4   1
+static const int16_t w3_index=1;                 //       x      =>      x
+static const int16_t w4_index=3;                 //    W4   W2         3   2
+
+// Sortie des PIDs
+static double u_theta, u_phi, u_r, u_z;
+
+// Commandes (moteurs en rad/s)
+static double w1,w2,w3,w4;
+
+// Commandes (moteurs en pwm)
+static int16_t w1_pwm,w2_pwm,w3_pwm,w4_pwm;
+
+//fichieur ouvert
+static bool fichier_log_ouvert=false;
 
 // -----------------------------------------------------------------------
 // Déclaration des classes
