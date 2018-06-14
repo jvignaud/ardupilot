@@ -71,6 +71,12 @@ static int16_t w1_pwm,w2_pwm,w3_pwm,w4_pwm;
 static bool fichier_log_ouvert=false;
 
 // -----------------------------------------------------------------------
+// Déclaration des fonctions
+// -----------------------------------------------------------------------
+
+void ecriture_log(std::ofstream *fichier, double roll, double pitch, double yaw_rate ,double target_roll_rad, double target_pitch_rad, double target_yaw_rate_rad, double target_throttle_newton, double pos_theta, double pos_phi, double pos_r, double pos_z, double moteur1, double moteur2, double moteur3, double moteur4, int16_t moteur1_pwm, int16_t moteur2_pwm, int16_t moteur3_pwm, int16_t moteur4_pwm);
+
+// -----------------------------------------------------------------------
 // Déclaration des classes
 // -----------------------------------------------------------------------
 
@@ -154,4 +160,4 @@ private:
 // ---------------------------------------------------------------------------
 
 //int open_file_csv_log(void);
-void write_csv_log(std::ofstream myfile);
+//void write_csv_log(std::ofstream myfile);
