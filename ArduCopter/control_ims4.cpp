@@ -20,9 +20,6 @@
 #define OFFSET_PWM 65
 
 
-// ATTENTION : LES PWMS SONT MISES A ZEROS
-
-
 // --------------------------------------------------------------------
 // Déclaration des variables Globales
 // --------------------------------------------------------------------
@@ -322,9 +319,9 @@ void Copter::ims4_run()
     // pwm est la valeur pwm envoyée en sortie (normalement situé entre 1000 et 2000)
 
     // Rotation des moteurs en fonction de la valeur en pwm des commandes
-    motors.output_test(w1_index,0);
-    motors.output_test(w2_index,0);
-    motors.output_test(w3_index,0);
-    motors.output_test(w4_index,0);
+    motors.output_test(w1_index,w1_pwm);
+    motors.output_test(w2_index,w2_pwm);
+    motors.output_test(w3_index,w3_pwm);
+    motors.output_test(w4_index,w4_pwm);
 
 }

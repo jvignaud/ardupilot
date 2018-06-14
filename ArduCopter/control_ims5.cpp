@@ -16,9 +16,10 @@
 
 #define LOG_TIME 600
 
-#define OFFSET_PWM 65
+#define OFFSET_PWM 80
+#define ANGLE_MAX_ROLL_PITCH 20     // angle maximal (en °) pour le pitch et le roll (par défaut, il est à 20°)
+#define YAW_RATE_MAX 45             // vitesse angulaire maximal (en °/s) pour le yaw (par défaut, il est à 67°/s)
 
-// ATTENTION : LES PWMS SONT MISES A ZEROS ET LA SUITES SMOOTH EST DIVERGENTES
 
 // --------------------------------------------------------------------
 // Déclaration des variables Globales
@@ -93,10 +94,10 @@ void Copter::ims5_run()
     // ------------------------------------------------------------------------
 
     // Récupération des consignes roulis et tangage (en centidegrés)
-    get_pilot_desired_lean_angles(channel_roll->get_control_in(), channel_pitch->get_control_in(), target_roll, target_pitch, aparm.angle_max);
+    get_pilot_desired_lean_angles(channel_roll->get_control_in(), channel_pitch->get_control_in(), target_roll, target_pitch, (double)ANGLE_MAX_ROLL_PITCH*100);
 
     // Récupération de la consigne en lacet (en centidegrés par seconde)
-    target_yaw_rate = get_pilot_desired_yaw_rate(channel_yaw->get_control_in());
+    target_yaw_rate = (double)YAW_RATE_MAX / (double)67 *  get_pilot_desired_yaw_rate(channel_yaw->get_control_in());  // 67. est la vitesse maximale par défaut du lacet
 
     // Récupération de la consigne en poussée (valeur entre 0 et 1)
     pilot_throttle_scaled = get_pilot_desired_throttle(channel_throttle->get_control_in());
@@ -210,10 +211,10 @@ void Copter::ims5_run()
     u_z=-target_throttle_newton/(cosf(ahrs.roll-offset_ahrs_roll)*cosf(ahrs.pitch-offset_ahrs_pitch));
 
     // Calcul de la valeur des commandes
-    w1=sqrt(constrain_float((d*u_phi+d*u_theta-b*l*u_r-d*l*u_z)/(b*d*l),0,10000000))/2; //constraib_float est une fonction qui force la fonction 
-    w2=sqrt(constrain_float(-(d*u_phi+d*u_theta+b*l*u_r+d*l*u_z)/(b*d*l),0,10000000))/2;
-    w3=sqrt(constrain_float(-(d*u_phi-d*u_theta-b*l*u_r+d*l*u_z)/(b*d*l),0,10000000))/2;
-    w4=sqrt(constrain_float((d*u_phi-d*u_theta+b*l*u_r-d*l*u_z)/(b*d*l),0,10000000))/2;
+    w1=sqrt(constrain_float((d*u_phi+d*u_theta-b*l*u_r-d*l*u_z)/(b*d*l),0,10000000))/2;     //constrain_float(variable, valeur_min, valeur_max)
+    w2=sqrt(constrain_float(-(d*u_phi+d*u_theta+b*l*u_r+d*l*u_z)/(b*d*l),0,10000000))/2;    // si la valeur de "variable" est inférieure à valeur_min alors la fonction retour : valeur_min
+    w3=sqrt(constrain_float(-(d*u_phi-d*u_theta-b*l*u_r+d*l*u_z)/(b*d*l),0,10000000))/2;    // si la valeur de "variable" est supérieure à valeur_max alors la fonction retour : valeur_max
+    w4=sqrt(constrain_float((d*u_phi-d*u_theta+b*l*u_r-d*l*u_z)/(b*d*l),0,10000000))/2;     // sinon elle retour la valeur de variable
 
     // Calcul des valeurs de PWM à envoyer à chaque moteur en fonction de w1, w2, w3, w4 - A commenter pour les tests de poussée
     w1_pwm=(w1/ROTATION_MAX)*(pwm_max-(pwm_min+OFFSET_PWM))+pwm_min+OFFSET_PWM;
@@ -303,7 +304,7 @@ void Copter::ims5_run()
     // ----------------------------------------------------------------------------------------
 
     // Affichage des consignes Roll, Pitch, Yaw, Throttle
-    hal.console->printf("Consignes - Roll: %f Pitch: %f Yaw: %f Throttle %f\n",target_roll_smooth,target_pitch_smooth,target_yaw_rate_smooth, target_throttle_newton);
+    hal.console->printf("Consignes - Roll: %f Pitch: %f Yaw: %f Throttle %f\n",target_roll_smooth*180/M_PI,target_pitch_smooth*180/M_PI,target_yaw_rate_smooth*180/M_PI, target_throttle_newton);
 
     // Affichage des sorties de l'AHRS
     //hal.console->printf("AHRS - Roll: %f Pitch:%f R:%f\n",ahrs.roll, ahrs.pitch, ahrs.get_gyro().z);
@@ -318,7 +319,7 @@ void Copter::ims5_run()
     //hal.console->printf("Paramètres - d:%lf, b:%lf, l:%lf\n",d,b,l);
 
     // Affichage des commandes
-    //hal.console->printf("Commandes - w1:%f, w2:%f, w3:%f, w4:%f\n",w1,w2,w3,w4);
+    hal.console->printf("Commandes - w1:%f, w2:%f, w3:%f, w4:%f\n",w1,w2,w3,w4);
 
     // --------------------------------------------------------------------
     // Ecriture des logs
@@ -337,9 +338,9 @@ void Copter::ims5_run()
     // pwm est la valeur pwm envoyée en sortie (normalement situé entre 1000 et 2000)
 
     // Rotation des moteurs en fonction de la valeur en pwm des commandes
-    motors.output_test(w1_index,0);
-    motors.output_test(w2_index,0);
-    motors.output_test(w3_index,0);
-    motors.output_test(w4_index,0);
+    motors.output_test(w1_index,w1_pwm);
+    motors.output_test(w2_index,w2_pwm);
+    motors.output_test(w3_index,w3_pwm);
+    motors.output_test(w4_index,w4_pwm);
 
 }
