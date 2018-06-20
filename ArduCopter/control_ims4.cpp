@@ -114,7 +114,7 @@ void Copter::ims4_run()
     // ----------------------------------------------------------------------------------------
 
     // Affichage des consignes Roll, Pitch, Yaw, Throttle
-    hal.console->printf("Consignes - Roll: %f Pitch: %f Yaw: %f Throttle %f\n",target_roll_rad,target_pitch_rad,target_yaw_rate_rad, target_throttle_newton);
+    //hal.console->printf("Consignes - Roll: %f° Pitch: %f° Yaw: %f°/s Throttle %fN\n",target_roll_rad*180/M_PI,target_pitch_rad*180/M_PI,target_yaw_rate_rad*180/M_PI, target_throttle_newton);
 
     // Affichage des sorties de l'AHRS
     //hal.console->printf("AHRS - Roll: %f Pitch:%f R:%f\n",ahrs.roll, ahrs.pitch, ahrs.get_gyro().z);

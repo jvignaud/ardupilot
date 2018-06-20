@@ -6,7 +6,7 @@
  *
  *
  * Routines d'initialisation et d'appel pour le mode de vol IMS5
- * Ajout de la fonction smooth des consignes
+ * Ajout de la fonction smooth des consignes et création de la fonction titre_log(), reset_PID(),...
  * 
  */
 
@@ -19,7 +19,12 @@
 #define OFFSET_PWM 80
 #define ANGLE_MAX_ROLL_PITCH 20     // angle maximal (en °) pour le pitch et le roll (par défaut, il est à 20°)
 #define YAW_RATE_MAX 45             // vitesse angulaire maximal (en °/s) pour le yaw (par défaut, il est à 67°/s)
+#define NOM_PROGRAMME "IMS5"
 
+// --------------------------------------------------------------------
+//  Prototype des fonctions locales
+// --------------------------------------------------------------------
+void reset_PID(void);
 
 // --------------------------------------------------------------------
 // Déclaration des variables Globales
@@ -40,8 +45,6 @@ Correcteur_2nd_Ordre_Discret roll_smooth(0.00015242,0.00030483,0.00015242,1.9506
 // ofstream est utilisé pour écrire un fichier CSV nommé IMS5_CSV_LOG.dat, celui-ci contiendra toutes les informations de vol
 std::ofstream outf5;
 
-// Variable permettant de récupérer les valeurs précédentes des PWM (pas utile : gérer directement par les correcteurs)
-//int16_t  w1_pwm_prec = 0,w2_pwm_prec = 0,w3_pwm_prec = 0,w4_pwm_prec = 0;
 
 // ---------------------------------------------------------------------------------------------
 // ims5_init - Routine d'initialisation du mode de vol IMS5
@@ -118,18 +121,13 @@ void Copter::ims5_run()
     // Spécifique Ardupilot - Gestion de l'armement des moteurs
     // ------------------------------------------------------------------------
 
-    // if not armed set throttle to zero and exit immediately
+    // Si les moteurs sont désarmés ou qu'ils ne tournent pas, ou encore, que le stick de la poussée est en bas
     if (!motors.armed() || ap.throttle_zero || !motors.get_interlock()) {
-        motors.set_desired_spool_state(AP_Motors::DESIRED_SPIN_WHEN_ARMED);
-        attitude_control.set_throttle_out_unstabilized(0,true,g.throttle_filt);
+        motors.set_desired_spool_state(AP_Motors::DESIRED_SPIN_WHEN_ARMED);     // Tous les moteurs tournent lorsqu'ils sont armés
+        attitude_control.set_throttle_out_unstabilized(0,true,g.throttle_filt); // Réglage de la poussée et désactivation de la stabilisation
 
         // Reset des PIDs pour éviter qu'ils divergent
-        pid_roll5.reset();
-        pid_pitch5.reset();
-        pi_yaw5.reset();
-        roll_smooth.reset();
-        pitch_smooth.reset();
-        yaw_rate_smooth.reset();
+        reset_PID();
 
         if (fichier_log_ouvert==true) { // Si le fichier de log est ouvert alors le fermer
             outf5.close();
@@ -140,29 +138,8 @@ void Copter::ims5_run()
     } else // Sinon cela veut dire que les moteurs sont armés et que le drone est prêt à décoller
     {
         if (fichier_log_ouvert==false) { // Si le fichier de log n'est pas encore ouvert alors l'ouvrir
-
-            // Construction de la date et de l'heure pour rendre le nom du fichier de log unique
-            time_t rawtime;
-            struct tm * timeinfo;
-            char buffer [30];
-            char log_file_name [80];
-
-            time (&rawtime);
-            timeinfo = localtime (&rawtime);
-
-            strftime (buffer,30,"%F--%H-%M-%S",timeinfo);
-
-            /*création du fichier à l'emplacement '/home/pi/ardupilot/build/navio2/bin/' sur le drone
-            avec pour nom : "IMS5_CSV_LOG-<année>-<mois>-<jour>--<heure>-<minute>-<seconde>.dat"*/
-            strcpy(log_file_name,"/home/pi/ardupilot/build/navio2/bin/IMS5_CSV_LOG-");
-            strcat(log_file_name,buffer);
-            strcat(log_file_name,".dat");
-
-            outf5.open(log_file_name); // Création d'un fichier de log unique
-
-            // Ecriture d'une entête pour savoir à quoi correspond les données
-            outf5 << "AHRS.Roll,AHRS.Pitch,AHRS.R,RC.Roll,RC.Pitch,RC.R,RC.Thrust,Uphi,Utheta,Ur,Uz,w1,w2,w3,w4,w1_pwm,w2_pwm,w3_pwm,w4_pwm" << std::endl;
-
+            // Fonction qui donne un titre au fichier
+            titre_log(&outf5, NOM_PROGRAMME);
             fichier_log_ouvert=true;
         }
     }
@@ -211,10 +188,10 @@ void Copter::ims5_run()
     u_z=-target_throttle_newton/(cosf(ahrs.roll-offset_ahrs_roll)*cosf(ahrs.pitch-offset_ahrs_pitch));
 
     // Calcul de la valeur des commandes
-    w1=sqrt(constrain_float((d*u_phi+d*u_theta-b*l*u_r-d*l*u_z)/(b*d*l),0,10000000))/2;     //constrain_float(variable, valeur_min, valeur_max)
-    w2=sqrt(constrain_float(-(d*u_phi+d*u_theta+b*l*u_r+d*l*u_z)/(b*d*l),0,10000000))/2;    // si la valeur de "variable" est inférieure à valeur_min alors la fonction retour : valeur_min
-    w3=sqrt(constrain_float(-(d*u_phi-d*u_theta-b*l*u_r+d*l*u_z)/(b*d*l),0,10000000))/2;    // si la valeur de "variable" est supérieure à valeur_max alors la fonction retour : valeur_max
-    w4=sqrt(constrain_float((d*u_phi-d*u_theta+b*l*u_r-d*l*u_z)/(b*d*l),0,10000000))/2;     // sinon elle retour la valeur de variable
+    w1=sqrt(constrain_float((d*u_phi+d*u_theta-b*l*u_r-d*l*u_z)/(b*d*l),0,2*ROTATION_MAX*ROTATION_MAX))/2;     //constrain_float(variable, valeur_min, valeur_max)
+    w2=sqrt(constrain_float(-(d*u_phi+d*u_theta+b*l*u_r+d*l*u_z)/(b*d*l),0,2*ROTATION_MAX*ROTATION_MAX))/2;    // si la valeur de "variable" est inférieure à valeur_min alors la fonction retour : valeur_min
+    w3=sqrt(constrain_float(-(d*u_phi-d*u_theta-b*l*u_r+d*l*u_z)/(b*d*l),0,2*ROTATION_MAX*ROTATION_MAX))/2;    // si la valeur de "variable" est supérieure à valeur_max alors la fonction retour : valeur_max
+    w4=sqrt(constrain_float((d*u_phi-d*u_theta+b*l*u_r-d*l*u_z)/(b*d*l),0,2*ROTATION_MAX*ROTATION_MAX))/2;     // sinon elle retour la valeur de variable
 
     // Calcul des valeurs de PWM à envoyer à chaque moteur en fonction de w1, w2, w3, w4 - A commenter pour les tests de poussée
     w1_pwm=(w1/ROTATION_MAX)*(pwm_max-(pwm_min+OFFSET_PWM))+pwm_min+OFFSET_PWM;
@@ -234,68 +211,7 @@ void Copter::ims5_run()
     // --------------------------------------------------------------------
 
     // Test pour protection des moteurs
-    if (w1_pwm > pwm_max)
-        w1_pwm = pwm_max;
-    if (w2_pwm > pwm_max)
-        w2_pwm = pwm_max;
-    if (w3_pwm > pwm_max)
-        w3_pwm = pwm_max;
-    if (w4_pwm > pwm_max)
-        w4_pwm = pwm_max;
-
-/*
-    // Si arret d'un seul moteur, alors on le fait tourner à la rotation minimale (les autres moteurs seront corrigés par les PIDs)
-    if (w1_pwm < pwm_min + OFFSET_PWM  && w2_pwm >= pwm_min + OFFSET_PWM && w3_pwm >= pwm_min + OFFSET_PWM && w4_pwm >= pwm_min + OFFSET_PWM)
-        w1_pwm = pwm_min+OFFSET_PWM;
-
-    if (w1_pwm >= pwm_min + OFFSET_PWM  && w2_pwm < pwm_min + OFFSET_PWM && w3_pwm >= pwm_min + OFFSET_PWM && w4_pwm >= pwm_min + OFFSET_PWM)
-        w2_pwm = pwm_min+OFFSET_PWM;
-
-    if (w1_pwm >= pwm_min + OFFSET_PWM  && w2_pwm >= pwm_min + OFFSET_PWM && w3_pwm < pwm_min + OFFSET_PWM && w4_pwm >= pwm_min + OFFSET_PWM)
-        w3_pwm = pwm_min+OFFSET_PWM;
-
-    if (w1_pwm >= pwm_min + OFFSET_PWM  && w2_pwm >= pwm_min + OFFSET_PWM && w3_pwm >= pwm_min + OFFSET_PWM && w4_pwm < pwm_min + OFFSET_PWM)
-        w4_pwm = pwm_min+OFFSET_PWM;
-    
-
-    // Si arret de deux moteurs sur quatre, alors on les fait tourner à la rotation minimale (les autres moteurs seront corrigés par les PIDs)
-    if (w1_pwm < pwm_min + OFFSET_PWM  && w2_pwm < pwm_min + OFFSET_PWM && w3_pwm >= pwm_min + OFFSET_PWM && w4_pwm >= pwm_min + OFFSET_PWM) { // demande d'un lacet max à droite
-        w1_pwm = pwm_min+OFFSET_PWM;
-        w2_pwm = pwm_min+OFFSET_PWM;       //on force la valeur des pwms encoyées au moteur 1 et 2 à la valeur pwm_min
-        //w3_pwm = w3_pwm_prec;
-        //w4_pwm = w4_pwm_prec;    //on force la valeur des pwms encoyées au moteur 3 et 4 à la valeur a l'intant t-1
-    }
-
-    if (w3_pwm < pwm_min + OFFSET_PWM  && w4_pwm < pwm_min + OFFSET_PWM && w1_pwm >= pwm_min + OFFSET_PWM && w2_pwm >= pwm_min + OFFSET_PWM) { // demande d'un lacet max à gauche
-        w3_pwm = pwm_min+OFFSET_PWM;
-        w4_pwm = pwm_min+OFFSET_PWM;       //on force la valeur des pwms encoyées au moteur 3 et 4 à la valeur pwm_min
-    }
-
-    if (w1_pwm < pwm_min + OFFSET_PWM  && w3_pwm < pwm_min + OFFSET_PWM && w2_pwm >= pwm_min + OFFSET_PWM && w4_pwm >= pwm_min + OFFSET_PWM) { // demande d'un tangage (nez vers le bas) max
-        w1_pwm = pwm_min+OFFSET_PWM;
-        w3_pwm = pwm_min+OFFSET_PWM;       //on force la valeur des pwms encoyées au moteur 1 et 3 à la valeur pwm_min
-    }
-
-    if (w2_pwm < pwm_min + OFFSET_PWM  && w4_pwm < pwm_min + OFFSET_PWM && w1_pwm >= pwm_min + OFFSET_PWM && w3_pwm >= pwm_min + OFFSET_PWM) { // demande d'un tangage (nez vers le haut) max
-        w2_pwm = pwm_min+OFFSET_PWM;
-        w4_pwm = pwm_min+OFFSET_PWM;       //on force la valeur des pwms encoyées au moteur 2 et 4 à la valeur pwm_min
-    }
-
-    if (w2_pwm < pwm_min + OFFSET_PWM  && w3_pwm < pwm_min + OFFSET_PWM && w1_pwm >= pwm_min + OFFSET_PWM && w4_pwm >= pwm_min + OFFSET_PWM) { // demande d'un roulis à droite max
-        w2_pwm = pwm_min+OFFSET_PWM;
-        w3_pwm = pwm_min+OFFSET_PWM;       //on force la valeur des pwms encoyées au moteur 2 et 3 à la valeur pwm_min
-    }
-
-    if (w1_pwm < pwm_min + OFFSET_PWM  && w4_pwm < pwm_min + OFFSET_PWM && w2_pwm >= pwm_min + OFFSET_PWM && w3_pwm >= pwm_min + OFFSET_PWM) { // demande d'un roulis à gauche max
-        w1_pwm = pwm_min+OFFSET_PWM;
-        w4_pwm = pwm_min+OFFSET_PWM;       //on force la valeur des pwms encoyées au moteur 1 et 4 à la valeur pwm_min
-    }*/
-    
-    /* //pas utile : gérer par les correcteurs
-    w1_pwm_prec = w1_pwm;
-    w2_pwm_prec = w2_pwm;
-    w3_pwm_prec = w3_pwm;
-    w4_pwm_prec = w4_pwm;*/
+    test_pwm(&w1_pwm,&w2_pwm,&w3_pwm,&w4_pwm, pwm_max);
 
     // A mettre dans une zone de debug
 
@@ -313,13 +229,13 @@ void Copter::ims5_run()
     //hal.console->printf("PWM - Min: %i Max: %i Actuel:%i w4:%i\n",pwm_min,pwm_max,pwm,w4_pwm);
 
     // Affichage des sorties des PIDs
-    //hal.console->printf("PIDs - UPhi:%f, UTheta:%f, Ur:%f, Uz:%f\n",u_phi,u_theta,u_r,u_z);
+    hal.console->printf("PIDs - UPhi:%f, UTheta:%f, Ur:%f, Uz:%f\n",u_phi,u_theta,u_r,u_z);
 
     // Affichage des paramètres
     //hal.console->printf("Paramètres - d:%lf, b:%lf, l:%lf\n",d,b,l);
 
     // Affichage des commandes
-    hal.console->printf("Commandes - w1:%f, w2:%f, w3:%f, w4:%f\n",w1,w2,w3,w4);
+    //hal.console->printf("Commandes - w1:%f, w2:%f, w3:%f, w4:%f\n",w1,w2,w3,w4);
 
     // --------------------------------------------------------------------
     // Ecriture des logs
@@ -333,14 +249,23 @@ void Copter::ims5_run()
     // Gestion Moteurs
     // ---------------------------------------------------------------------
 
-    // output_test : Fait tourner les moteurs à une valeur de PWM spécifiée : void output_test(uint8_t motor_seq, int16_t pwm);
-    // motor_seq est le numéro du moteur (va de 1 au nombre de moteurs total)
-    // pwm est la valeur pwm envoyée en sortie (normalement situé entre 1000 et 2000)
-
     // Rotation des moteurs en fonction de la valeur en pwm des commandes
-    motors.output_test(w1_index,w1_pwm);
-    motors.output_test(w2_index,w2_pwm);
-    motors.output_test(w3_index,w3_pwm);
+    motors.output_test(w1_index,w1_pwm);    // output_test : Fait tourner les moteurs à une valeur de PWM spécifiée : void output_test(uint8_t motor_seq, int16_t pwm);
+    motors.output_test(w2_index,w2_pwm);    // motor_seq est le numéro du moteur (va de 1 au nombre de moteurs total)
+    motors.output_test(w3_index,w3_pwm);    // pwm est la valeur pwm envoyée en sortie (normalement situé entre 1000 et 2000)
     motors.output_test(w4_index,w4_pwm);
+}
 
+// ---------------------------------------------------------------------
+// Fonctions locales
+// ---------------------------------------------------------------------
+
+void reset_PID(void)
+{
+    pid_roll5.reset();
+    pid_pitch5.reset();
+    pi_yaw5.reset();
+    roll_smooth.reset();
+    pitch_smooth.reset();
+    yaw_rate_smooth.reset();
 }

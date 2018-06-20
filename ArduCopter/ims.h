@@ -11,6 +11,7 @@
 // Pour les fonctions d'écriture/lecture de fichiers
 #include <fstream>
 #include <iostream>
+#include <time.h>
 
 #define LOG_TIME 600
 
@@ -74,7 +75,9 @@ static bool fichier_log_ouvert=false;
 // Déclaration des fonctions
 // -----------------------------------------------------------------------
 
+void titre_log(std::ofstream *fichier,char nom_fichier[6]);
 void ecriture_log(std::ofstream *fichier, double roll, double pitch, double yaw_rate ,double target_roll_rad, double target_pitch_rad, double target_yaw_rate_rad, double target_throttle_newton, double pos_theta, double pos_phi, double pos_r, double pos_z, double moteur1, double moteur2, double moteur3, double moteur4, int16_t moteur1_pwm, int16_t moteur2_pwm, int16_t moteur3_pwm, int16_t moteur4_pwm);
+void test_pwm(int16_t* pwm_w1,int16_t* pwm_w2,int16_t* pwm_w3,int16_t* pwm_w4,int16_t max_pwm);
 
 // -----------------------------------------------------------------------
 // Déclaration des classes
@@ -155,9 +158,3 @@ private:
     double yn_1;                    	// Valeurs successives de la sortie y(n-1)
 };
 
-// ---------------------------------------------------------------------------
-// Déclaration des fonctions
-// ---------------------------------------------------------------------------
-
-//int open_file_csv_log(void);
-//void write_csv_log(std::ofstream myfile);

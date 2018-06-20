@@ -229,6 +229,30 @@ void Copter::ims1_run()
 		outf1 << pilot_throttle_scaled;
 		outf1 << std::endl;
 
+    // A mettre dans une zone de debug
+
+    // ----------------------------------------------------------------------------------------
+    // Affichage de la sortie de l'AHRS et des consignes
+    // ----------------------------------------------------------------------------------------
+
+    // Affichage des consignes Roll, Pitch, Yaw, Throttle
+    hal.console->printf("Consignes - Roll: %f Pitch: %f Yaw: %f Throttle %f\n",target_roll_rad*180/M_PI,target_pitch_rad*180/M_PI,target_yaw_rate_rad*180/M_PI, target_throttle_newton);
+
+    // Affichage des sorties de l'AHRS
+    //hal.console->printf("AHRS - Roll: %f Pitch:%f R:%f\n",ahrs.roll, ahrs.pitch, ahrs.get_gyro().z);
+
+    // Affichage des valeurs PMW des moteurs
+    //hal.console->printf("PWM - Min: %i Max: %i Actuel:%i w4:%i\n",pwm_min,pwm_max,pwm,w4_pwm);
+
+    // Affichage des sorties des PIDs
+    hal.console->printf("PIDs - UPhi:%f, UTheta:%f, Ur:%f, Uz:%f\n",u_phi,u_theta,u_r,u_z);
+
+    // Affichage des paramètres
+    //hal.console->printf("Paramètres - d:%lf, b:%lf, l:%lf\n",d,b,l);
+
+    // Affichage des commandes
+    //hal.console->printf("Commandes - w1:%f, w2:%f, w3:%f, w4:%f\n",w1,w2,w3,w4);
+
 	// ---------------------------------------------------------------------
 	// Gestion Moteurs
 	// ---------------------------------------------------------------------

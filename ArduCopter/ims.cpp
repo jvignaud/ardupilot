@@ -10,10 +10,37 @@
 // Pour les fonctions d'écriture/lecture de fichiers
 #include <fstream>
 #include <iostream>
+#include <string.h>
 
 // ----------------------------------------------------------------------------
 // Fonction d'écriture des fichiers log
 // ----------------------------------------------------------------------------
+void titre_log(std::ofstream *fichier,char nom_fichier[6])
+{
+    // Construction de la date et de l'heure pour rendre le nom du fichier de log unique
+            time_t rawtime;
+            struct tm * timeinfo;
+            char buffer [30];
+            char log_file_name [80];
+
+            time (&rawtime);
+            timeinfo = localtime (&rawtime);
+
+            strftime (buffer,30,"%F--%H-%M-%S",timeinfo);
+            /*création du fichier à l'emplacement '/home/pi/ardupilot/build/navio2/bin/' sur le drone
+            avec pour nom : "IMS<numero_control_ims>_CSV_LOG-<année>-<mois>-<jour>--<heure>-<minute>-<seconde>.dat"*/
+            strcpy(log_file_name,"/home/pi/ardupilot/build/navio2/bin/");
+            strcat(log_file_name,nom_fichier);
+            strcat(log_file_name,"_CSV_LOG-");
+            strcat(log_file_name,buffer);
+            strcat(log_file_name,".dat");
+
+            fichier->open(log_file_name); // Création d'un fichier de log unique
+
+            // Ecriture d'une entête pour savoir à quoi correspond les données
+            *fichier << "AHRS.Roll,AHRS.Pitch,AHRS.R,RC.Roll,RC.Pitch,RC.R,RC.Thrust,Uphi,Utheta,Ur,Uz,w1,w2,w3,w4,w1_pwm,w2_pwm,w3_pwm,w4_pwm" << std::endl;
+}
+
 
 void ecriture_log(std::ofstream *fichier, double roll, double pitch, double yaw_rate ,double target_roll_rad, double target_pitch_rad, double target_yaw_rate_rad, double target_throttle_newton, double pos_theta, double pos_phi, double pos_r, double pos_z, double moteur1, double moteur2, double moteur3, double moteur4, int16_t moteur1_pwm, int16_t moteur2_pwm, int16_t moteur3_pwm, int16_t moteur4_pwm)
 {
@@ -55,6 +82,22 @@ void ecriture_log(std::ofstream *fichier, double roll, double pitch, double yaw_
     *fichier << ",";
     *fichier << moteur4_pwm;
     *fichier << std::endl;
+}
+
+// Test pour protection des moteurs
+void test_pwm(int16_t* pwm_w1,int16_t* pwm_w2,int16_t* pwm_w3,int16_t* pwm_w4,int16_t max_pwm)
+{
+    if (*pwm_w1 > max_pwm)
+        *pwm_w1 = max_pwm;
+
+    if (*pwm_w2 > max_pwm)
+        *pwm_w2 = max_pwm;
+
+    if (*pwm_w3 > max_pwm)
+        *pwm_w3 = max_pwm;
+
+    if (*pwm_w4 > max_pwm)
+        *pwm_w4 = max_pwm;
 }
 
 // ----------------------------------------------------------------------------
@@ -120,6 +163,8 @@ void Correcteur_2nd_Ordre_Discret::cycle(double new_xn)
     xn_2=xn_1;
     xn_1=xn;
 }
+
+
 
 // -----------------------------------------------------------------------------
 // Fonctions de lecture écriture de fichiers
