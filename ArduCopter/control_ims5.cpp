@@ -20,6 +20,7 @@
 #define ANGLE_MAX_ROLL_PITCH 20     // angle maximal (en °) pour le pitch et le roll (par défaut, il est à 20°)
 #define YAW_RATE_MAX 45             // vitesse angulaire maximal (en °/s) pour le yaw (par défaut, il est à 67°/s)
 #define NOM_PROGRAMME "IMS5"
+#define MASSE_DARRACHAGE 4.09       // masse maximale que les 4 moteurs fornissent (en kg)
 
 // --------------------------------------------------------------------
 //  Prototype des fonctions locales
@@ -40,7 +41,7 @@ Correcteur_2nd_Ordre_Discret pid_pitch5(35.9066,-71.3902,35.4847,1.8397,-0.83971
 Correcteur_1er_Ordre_Discret pi_yaw5(0.65646,-0.654,1);
 
 // fonction smooth consigne
-Correcteur_2nd_Ordre_Discret roll_smooth(0.00015242,0.00030483,0.00015242,1.9506,-0.95123),pitch_smooth(0.00015242,0.00030483,0.00015242,1.9506,-0.95123),yaw_rate_smooth(0.00015242,0.00030483,0.00015242,1.9506,-0.95123);
+Correcteur_2nd_Ordre_Discret roll_smooth(0.00015242,0.00030483,0.00015242,1.9506,-0.95123),pitch_smooth(roll_smooth),yaw_rate_smooth(roll_smooth);
 
 // ofstream est utilisé pour écrire un fichier CSV nommé IMS5_CSV_LOG.dat, celui-ci contiendra toutes les informations de vol
 std::ofstream outf5;
@@ -115,7 +116,7 @@ void Copter::ims5_run()
     // Conversion des consignes de la radiocommande YAW de centi-degrés par seconde en radians par seconde
     target_yaw_rate_rad=double((target_yaw_rate*M_PI)/18000);
     // Conversion des consignes de la radiocommande Throttle de centi-pourcentage en Newton
-    target_throttle_newton=double(pilot_throttle_scaled*2.95*GRAVITY_MSS);
+    target_throttle_newton=double(pilot_throttle_scaled*MASSE_DARRACHAGE*GRAVITY_MSS);
 
     // ------------------------------------------------------------------------
     // Spécifique Ardupilot - Gestion de l'armement des moteurs
@@ -220,8 +221,13 @@ void Copter::ims5_run()
     // ----------------------------------------------------------------------------------------
 
     // Affichage des consignes Roll, Pitch, Yaw, Throttle
-    hal.console->printf("Consignes - Roll: %f Pitch: %f Yaw: %f Throttle %f\n",target_roll_smooth*180/M_PI,target_pitch_smooth*180/M_PI,target_yaw_rate_smooth*180/M_PI, target_throttle_newton);
+    //hal.console->printf("Consignes - Roll: %f Pitch: %f Yaw: %f Throttle %f\n",target_roll_smooth*180/M_PI,target_pitch_smooth*180/M_PI,target_yaw_rate_smooth*180/M_PI, target_throttle_newton);
 
+    // Affichage de l'erreur, des consignes et des sortie de l'AHRS
+    //hal.console->printf("Erreur Roll : %f° = Consigne.Roll - AHRS.Roll = %f° - %f° \n",(target_roll_smooth - ahrs.roll)*180/M_PI, target_roll_smooth*180/M_PI, ahrs.roll*180/M_PI);
+    //hal.console->printf("Erreur Pitch : %f° = Consigne.Pitch - AHRS.Pitch = %f° - %f° \n",(target_pitch_smooth - ahrs.pitch)*180/M_PI, target_pitch_smooth*180/M_PI, ahrs.pitch*180/M_PI);
+    //hal.console->printf("Erreur Yaw : %f°/s = Consigne.Yaw - AHRS.Yaw = %f° - %f° \n",(target_yaw_rate_smooth - ahrs.get_gyro().z)*180/M_PI, target_yaw_rate_smooth*180/M_PI, ahrs.get_gyro().z*180/M_PI);
+    
     // Affichage des sorties de l'AHRS
     //hal.console->printf("AHRS - Roll: %f Pitch:%f R:%f\n",ahrs.roll, ahrs.pitch, ahrs.get_gyro().z);
 
@@ -229,7 +235,7 @@ void Copter::ims5_run()
     //hal.console->printf("PWM - Min: %i Max: %i Actuel:%i w4:%i\n",pwm_min,pwm_max,pwm,w4_pwm);
 
     // Affichage des sorties des PIDs
-    hal.console->printf("PIDs - UPhi:%f, UTheta:%f, Ur:%f, Uz:%f\n",u_phi,u_theta,u_r,u_z);
+    //hal.console->printf("PIDs - UPhi:%f, UTheta:%f, Ur:%f, Uz:%f\n",u_phi,u_theta,u_r,u_z);
 
     // Affichage des paramètres
     //hal.console->printf("Paramètres - d:%lf, b:%lf, l:%lf\n",d,b,l);

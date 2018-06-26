@@ -18,7 +18,7 @@
 /* Paramètres à changer selon le drone */
 
 /*Paramètres du drone*/
-#define COEF_POUSSEE 0.0000069245
+#define COEF_POUSSEE 0.00000661               // coefficient de poussée trouvé sur la droite d'extrapolation de la force générée par un moteur en fonction de la rotation au carré (en kg.m/rad2)
 #define COEF_TRAINEE 0.000000757
 #define ENVERGURE 0.256 //en mètre
 
