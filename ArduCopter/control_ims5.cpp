@@ -16,7 +16,7 @@
 
 #define LOG_TIME 600
 
-#define OFFSET_PWM 80
+#define OFFSET_PWM 8                // en % : valeur de pwm minimale envoyée au moteur
 #define ANGLE_MAX_ROLL_PITCH 20     // angle maximal (en °) pour le pitch et le roll (par défaut, il est à 20°)
 #define YAW_RATE_MAX 45             // vitesse angulaire maximal (en °/s) pour le yaw (par défaut, il est à 67°/s)
 #define NOM_PROGRAMME "IMS5"
@@ -30,15 +30,15 @@ void reset_PID(void);
 // --------------------------------------------------------------------
 // Déclaration des variables Globales
 // --------------------------------------------------------------------
+// wu = 25 rad/s
+// PID ROLL : y(n)=54.4335.x(n)+-107.3269.x(n-1)+52.9008.x(n-2)+1.839.y(n-1)+-0.83901.y(n-2)
+Correcteur_2nd_Ordre_Discret pid_roll5(54.433526746576554,-107.3268778899634,52.900834170825107,1.839006063381362,-0.839006063381362);
 
-// PID ROLL : y(n)=32.2486.x(n)-64.1172.x(n-1)+31.8696.x(n-2)+1.8397.y(n-1)-0.83971.y(n-2)
-Correcteur_2nd_Ordre_Discret pid_roll5(32.2486,-64.1172,31.8696,1.8397,-0.83971);
+// PID PITCH : y(n)=60.6081.x(n)+-119.5013.x(n-1)+58.9015.x(n-2)+1.839.y(n-1)+-0.83901.y(n-2)
+Correcteur_2nd_Ordre_Discret pid_pitch5(60.608076049173278,-119.5012700088249,58.901525808112716,1.839006063381362,-0.839006063381362);
 
-// PID PITCH : y(n)=35.9066.x(n)-71.3902.x(n-1)+35.4847.x(n-2)+1.8397.y(n-1)-0.83971.y(n-2)
-Correcteur_2nd_Ordre_Discret pid_pitch5(35.9066,-71.3902,35.4847,1.8397,-0.83971);
-
-// PI R : y(n)=0.65646.x(n)-0.654.x(n-1)+1.y(n-1)
-Correcteur_1er_Ordre_Discret pi_yaw5(0.65646,-0.654,1);
+// PI R : y(n)=1.0955.x(n)+-1.0886.x(n-1)+1.y(n-1)
+Correcteur_1er_Ordre_Discret pi_yaw5(1.095465982868761,-1.088640649642165,1);
 
 // fonction smooth consigne
 Correcteur_2nd_Ordre_Discret roll_smooth(0.00015242,0.00030483,0.00015242,1.9506,-0.95123),pitch_smooth(roll_smooth),yaw_rate_smooth(roll_smooth);
@@ -46,30 +46,35 @@ Correcteur_2nd_Ordre_Discret roll_smooth(0.00015242,0.00030483,0.00015242,1.9506
 // ofstream est utilisé pour écrire un fichier CSV nommé IMS5_CSV_LOG.dat, celui-ci contiendra toutes les informations de vol
 std::ofstream outf5;
 
+// 
+Parametre_Drone params("/home/pi/ardupilot/ParametresDrone.conf");
 
 // ---------------------------------------------------------------------------------------------
 // ims5_init - Routine d'initialisation du mode de vol IMS5
 // ---------------------------------------------------------------------------------------------
 bool Copter::ims5_init(bool ignore_checks)
 {
+    int16_t offset_pwm; 
     // Initialisation des Offset AHRS
-    offset_ahrs_roll=ahrs.roll;
-    offset_ahrs_pitch=ahrs.pitch;
-    offset_ahrs_yaw=ahrs.get_gyro().z;
-
+    //offset_ahrs_roll=ahrs.roll;
+    //offset_ahrs_pitch=ahrs.pitch;
+    //offset_ahrs_yaw=ahrs.get_gyro().z;
+    
     // Récupération des valeurs min et max pwm pour la rotation des moteurs
-    pwm_min=copter.motors.get_pwm_output_min();
-    pwm_max=copter.motors.get_pwm_output_max();
+    pwm_min = copter.motors.get_pwm_output_min();
+    pwm_max = copter.motors.get_pwm_output_max();
+    offset_pwm = OFFSET_PWM/100*(pwm_max - pwm_min);
+    pwm_min = pwm_min + offset_pwm;
 
-    // Code d'origine
-    // if landed and the mode we're switching from does not have manual throttle and the throttle stick is too high
+    params.set_parameters();
+
+    // si le drone est atterri et que le mode à partir duquel nous passons n'a pas de throttle manuel et le manche des gaz est trop haut
     if (motors.armed() && ap.land_complete && !mode_has_manual_throttle(control_mode) &&
             (get_pilot_desired_throttle(channel_throttle->get_control_in()) > get_non_takeoff_throttle())) {
         return false;
     }
 
-    // Code d'origine
-    // set target altitude to zero for reporting
+    // mise de l'altitude cible à zéro pour les rapports
     pos_control.set_alt_target(0);
 
     return true;
@@ -80,6 +85,7 @@ bool Copter::ims5_init(bool ignore_checks)
 // ---------------------------------------------------------------------------------------------
 void Copter::ims5_run()
 {
+
     // --------------------------------------------------------------------
     // Déclaration des variables
     // --------------------------------------------------------------------
@@ -111,7 +117,7 @@ void Copter::ims5_run()
     // ------------------------------------------------------------------------
 
     // Conversion des consignes de la radiocommande Roll/Pitch de centi-degrés en radians
-    target_roll_rad=double((target_roll*M_PI)/18000);
+    target_roll_rad=double((target_roll*M_PI)/18000.);
     target_pitch_rad=double((target_pitch*M_PI)/18000);
     // Conversion des consignes de la radiocommande YAW de centi-degrés par seconde en radians par seconde
     target_yaw_rate_rad=double((target_yaw_rate*M_PI)/18000);
@@ -169,24 +175,25 @@ void Copter::ims5_run()
     target_yaw_rate_smooth = yaw_rate_smooth.getyn();
 
     // Calcul PID Roll
-    pid_roll5.cycle(target_roll_smooth-(ahrs.roll-offset_ahrs_roll));
+    //pid_roll5.cycle(target_roll_smooth-(ahrs.roll-offset_ahrs_roll));
     // Calcul PID Pitch
-    pid_pitch5.cycle(target_pitch_smooth-(ahrs.pitch-offset_ahrs_pitch));
+    //pid_pitch5.cycle(target_pitch_smooth-(ahrs.pitch-offset_ahrs_pitch));
     // Calcul PID Yaw
-    pi_yaw5.cycle(target_yaw_rate_smooth-(ahrs.get_gyro().z-offset_ahrs_yaw));
+    //pi_yaw5.cycle(target_yaw_rate_smooth-(ahrs.get_gyro().z-offset_ahrs_yaw));
     
     // Calcul PID Roll - Version sans prise en compte des offset de calibrage de l'AHRS au niveau du calcul de l'erreur
-    //pid_roll5.cycle(target_roll_smooth-ahrs.roll);
+    pid_roll5.cycle(target_roll_smooth-ahrs.roll);
     // Calcul PID Pitch
-    //pid_pitch5.cycle(target_pitch_smooth-ahrs.pitch);
+    pid_pitch5.cycle(target_pitch_smooth-ahrs.pitch);
     // Calcul PID Yaw
-    //pi_yaw5.cycle(target_yaw_rate_smooth-ahrs.get_gyro().z);
+    pi_yaw5.cycle(target_yaw_rate_smooth-ahrs.get_gyro().z);
 
     // Assignation des sorties de PIDs
     u_phi=pid_roll5.getyn();
     u_theta=pid_pitch5.getyn();
     u_r=pi_yaw5.getyn();
-    u_z=-target_throttle_newton/(cosf(ahrs.roll-offset_ahrs_roll)*cosf(ahrs.pitch-offset_ahrs_pitch));
+    //u_z=-target_throttle_newton/(cosf(ahrs.roll-offset_ahrs_roll)*cosf(ahrs.pitch-offset_ahrs_pitch));
+    u_z=-target_throttle_newton/(cosf(ahrs.roll)*cosf(ahrs.pitch));
 
     // Calcul de la valeur des commandes
     w1=sqrt(constrain_float((d*u_phi+d*u_theta-b*l*u_r-d*l*u_z)/(b*d*l),0,2*ROTATION_MAX*ROTATION_MAX))/2;     //constrain_float(variable, valeur_min, valeur_max)
@@ -195,10 +202,10 @@ void Copter::ims5_run()
     w4=sqrt(constrain_float((d*u_phi-d*u_theta+b*l*u_r-d*l*u_z)/(b*d*l),0,2*ROTATION_MAX*ROTATION_MAX))/2;     // sinon elle retour la valeur de variable
 
     // Calcul des valeurs de PWM à envoyer à chaque moteur en fonction de w1, w2, w3, w4 - A commenter pour les tests de poussée
-    w1_pwm=(w1/ROTATION_MAX)*(pwm_max-(pwm_min+OFFSET_PWM))+pwm_min+OFFSET_PWM;
-    w2_pwm=(w2/ROTATION_MAX)*(pwm_max-(pwm_min+OFFSET_PWM))+pwm_min+OFFSET_PWM;
-    w3_pwm=(w3/ROTATION_MAX)*(pwm_max-(pwm_min+OFFSET_PWM))+pwm_min+OFFSET_PWM;
-    w4_pwm=(w4/ROTATION_MAX)*(pwm_max-(pwm_min+OFFSET_PWM))+pwm_min+OFFSET_PWM;
+    w1_pwm=(w1/ROTATION_MAX)*(pwm_max-pwm_min)+pwm_min;
+    w2_pwm=(w2/ROTATION_MAX)*(pwm_max-pwm_min)+pwm_min;
+    w3_pwm=(w3/ROTATION_MAX)*(pwm_max-pwm_min)+pwm_min;
+    w4_pwm=(w4/ROTATION_MAX)*(pwm_max-pwm_min)+pwm_min;
 
     // A décommenter pour les tests de poussée
     //w1_pwm=pilot_throttle_scaled*(pwm_max-pwm_min)+pwm_min;
@@ -219,6 +226,9 @@ void Copter::ims5_run()
     // ----------------------------------------------------------------------------------------
     // Affichage de la sortie de l'AHRS et des consignes
     // ----------------------------------------------------------------------------------------
+
+    // Affichage des paramètres du drone
+    hal.console->printf("Rotation min : %f et coef yn-1 : %f\n",params.get_rotation_min(),params.get_roulis().yn_1);
 
     // Affichage des consignes Roll, Pitch, Yaw, Throttle
     //hal.console->printf("Consignes - Roll: %f Pitch: %f Yaw: %f Throttle %f\n",target_roll_smooth*180/M_PI,target_pitch_smooth*180/M_PI,target_yaw_rate_smooth*180/M_PI, target_throttle_newton);
@@ -249,7 +259,7 @@ void Copter::ims5_run()
 
     // "AHRS.Roll,AHRS.Pitch,AHRS.R,RC.Roll,RC.Pitch,RC.R,RC.Thrust,Uphi,Utheta,Ur,Uz,w1,w2,w3,w4,w1_pwm,w2_pwm,w3_pwm,w4_pwm"
 
-    ecriture_log(&outf5, ahrs.roll-offset_ahrs_roll, ahrs.pitch-offset_ahrs_pitch, ahrs.get_gyro().z-offset_ahrs_yaw, target_roll_smooth, target_pitch_smooth, target_yaw_rate_smooth, target_throttle_newton, u_phi, u_theta, u_r, u_z, w1, w2, w3, w4, w1_pwm, w2_pwm, w3_pwm, w4_pwm);
+    ecriture_log(&outf5, ahrs.roll, ahrs.pitch, ahrs.get_gyro().z, target_roll_smooth, target_pitch_smooth, target_yaw_rate_smooth, target_throttle_newton, u_phi, u_theta, u_r, u_z, w1, w2, w3, w4, w1_pwm, w2_pwm, w3_pwm, w4_pwm);
 
     // ---------------------------------------------------------------------
     // Gestion Moteurs

@@ -11,6 +11,7 @@
 #include <fstream>
 #include <iostream>
 #include <string.h>
+#include <limits>
 
 // ----------------------------------------------------------------------------
 // Fonction d'écriture des fichiers log
@@ -100,6 +101,156 @@ void test_pwm(int16_t* pwm_w1,int16_t* pwm_w2,int16_t* pwm_w3,int16_t* pwm_w4,in
         *pwm_w4 = max_pwm;
 }
 
+// ----------------------------------------------------------------------------------------------
+// Focntion de la classe permettant de récupérer les paramètres du drone comptenu dans un fichier 
+// ----------------------------------------------------------------------------------------------
+
+Parametre_Drone::Parametre_Drone(std::string nom_fichier_parametre)
+{
+    std::ifstream fichier(nom_fichier_parametre.c_str(), std::ios::in);  // on ouvre le fichier en lecture
+}
+
+void Parametre_Drone::aller_a_la_ligne(int num_ligne)
+{
+    fichier.seekg(1,std::ios::beg);
+    for (int i = 1; i < num_ligne; i++)
+    {
+        fichier.ignore(std::numeric_limits<int>::max(),'\n');
+    }
+}
+
+void Parametre_Drone::aller_a_la_ligne_apres(int num_ligne_apres)
+{
+    fichier.seekg(1,std::ios::cur);
+    for (int i = 1; i < num_ligne_apres; i++)
+    {
+        fichier.ignore(std::numeric_limits<int>::max(),'\n');
+    }
+}
+
+void Parametre_Drone::set_parameters(void)
+{
+    set_rotation_min();
+    set_rotation_max();
+    set_coef_trainee();
+    set_coef_poussee();
+    set_masse_arrachage();
+    set_roulis();
+    set_tangage();
+    set_lacet();
+    fichier.close();
+}
+
+void Parametre_Drone::set_rotation_min(void)
+{
+    aller_a_la_ligne(6);
+    fichier >> rotation_min;
+}
+
+void Parametre_Drone::set_rotation_max(void)
+{
+    aller_a_la_ligne_apres(3);
+    fichier >> rotation_max;
+}
+
+void Parametre_Drone::set_coef_trainee(void)
+{
+    aller_a_la_ligne_apres(3);
+    fichier >> coef_trainee;
+}
+
+void Parametre_Drone::set_coef_poussee(void)
+{
+    aller_a_la_ligne_apres(3);
+    fichier >> coef_poussee;
+}
+
+void Parametre_Drone::set_masse_arrachage(void)
+{
+    aller_a_la_ligne_apres(3);
+    fichier >> masse_arrachage;
+}
+
+void Parametre_Drone::set_roulis(void)
+{
+    aller_a_la_ligne_apres(6);
+    fichier >> roulis.xn;
+    aller_a_la_ligne_apres(1);
+    fichier >> roulis.xn_1;
+    aller_a_la_ligne_apres(1);
+    fichier >> roulis.xn_2;
+    aller_a_la_ligne_apres(1);
+    fichier >> roulis.yn_1;
+    aller_a_la_ligne_apres(1);
+    fichier >> roulis.yn_2;
+}
+
+void Parametre_Drone::set_tangage(void)
+{
+    aller_a_la_ligne_apres(6);
+    fichier >> tangage.xn;
+    aller_a_la_ligne_apres(1);
+    fichier >> tangage.xn_1;
+    aller_a_la_ligne_apres(1);
+    fichier >> tangage.xn_2;
+    aller_a_la_ligne_apres(1);
+    fichier >> tangage.yn_1;
+    aller_a_la_ligne_apres(1);
+    fichier >> tangage.yn_2;
+}
+
+void Parametre_Drone::set_lacet(void)
+{
+    aller_a_la_ligne_apres(6);
+    fichier >> lacet.xn;
+    aller_a_la_ligne_apres(1);
+    fichier >> lacet.xn_1;
+    aller_a_la_ligne_apres(1);
+    fichier >> lacet.yn_1;
+    lacet.yn_2 = 0;
+    lacet.xn_2 = 0;
+}
+
+float Parametre_Drone::get_rotation_min(void) const
+{
+    return rotation_min;
+}
+
+float Parametre_Drone::get_rotation_max(void) const
+{
+    return rotation_max;
+}
+
+float Parametre_Drone::get_masse_arrachage(void) const
+{
+    return masse_arrachage;
+}
+
+double Parametre_Drone::get_coef_trainee(void) const
+{
+    return coef_trainee;
+}
+
+double Parametre_Drone::get_coef_poussee(void) const
+{
+    return coef_poussee;
+}
+
+struct Coef_Correcteurs Parametre_Drone::get_roulis(void) const
+{
+    return roulis;
+}
+
+struct Coef_Correcteurs Parametre_Drone::get_tangage(void) const
+{
+    return tangage;
+}
+
+struct Coef_Correcteurs Parametre_Drone::get_lacet(void) const
+{
+    return lacet;
+}
+
 // ----------------------------------------------------------------------------
 // Fonctions de la classe représentant une equation récurrente du premier ordre
 // ----------------------------------------------------------------------------
@@ -181,15 +332,10 @@ void Correcteur_2nd_Ordre_Discret::cycle(double new_xn)
 
 /*void write_csv_log(std::ofstream myfile)
 {
-
-
     myfile.open("IMS1_CSV_LOG.dat");
-
     // We'll write two lines into this file
     myfile << "This is line 1" << std::endl;
     myfile << "This is line 2" << std::endl;
-
     myfile.close();
-
 }
 */

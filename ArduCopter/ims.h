@@ -80,8 +80,61 @@ void ecriture_log(std::ofstream *fichier, double roll, double pitch, double yaw_
 void test_pwm(int16_t* pwm_w1,int16_t* pwm_w2,int16_t* pwm_w3,int16_t* pwm_w4,int16_t max_pwm);
 
 // -----------------------------------------------------------------------
+// Déclaration des structures
+// -----------------------------------------------------------------------
+
+struct Coef_Correcteurs
+{
+    double xn;
+    double xn_1;
+    double xn_2;
+    double yn_1;
+    double yn_2;
+};
+
+// -----------------------------------------------------------------------
 // Déclaration des classes
 // -----------------------------------------------------------------------
+
+// Classe permettant de récupérer les paramètres du drone comptenu dans un fichier
+class Parametre_Drone
+{
+public:
+    // Constructeur de la classe prenant en paramètre le nom du fichier contenant les paramètres 
+    Parametre_Drone(std::string nom_fichier_parametre);
+
+    // Méthodes (fonctions)
+    void set_parameters(void);
+    float get_rotation_min(void) const;
+    float get_rotation_max(void) const;
+    float get_masse_arrachage(void) const;
+    double get_coef_trainee(void) const;
+    double get_coef_poussee(void) const;
+    struct Coef_Correcteurs get_roulis(void) const;
+    struct Coef_Correcteurs get_tangage(void) const;
+    struct Coef_Correcteurs get_lacet(void) const;
+
+
+private:
+    void set_rotation_min(void);
+    void set_rotation_max(void);
+    void set_masse_arrachage(void);
+    void set_coef_trainee(void);
+    void set_coef_poussee(void);
+    void set_roulis(void);
+    void set_tangage(void);
+    void set_lacet(void); 
+
+    void aller_a_la_ligne(int num_ligne);
+    void aller_a_la_ligne_apres(int num_ligne_apres);
+
+    // Attributs (variables)
+    float rotation_min, rotation_max;
+    float masse_arrachage;
+    double coef_trainee, coef_poussee;
+    struct Coef_Correcteurs roulis,tangage,lacet;
+    std::ifstream fichier;
+};
 
 // Classe représentant une equation récurrente du second ordre
 class Correcteur_2nd_Ordre_Discret
@@ -157,4 +210,3 @@ private:
     double yn;                          // Valeur de la sortie y(n)
     double yn_1;                    	// Valeurs successives de la sortie y(n-1)
 };
-
