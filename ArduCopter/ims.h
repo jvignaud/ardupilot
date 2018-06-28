@@ -80,7 +80,7 @@ void ecriture_log(std::ofstream *fichier, double roll, double pitch, double yaw_
 void test_pwm(int16_t* pwm_w1,int16_t* pwm_w2,int16_t* pwm_w3,int16_t* pwm_w4,int16_t max_pwm);
 
 // -----------------------------------------------------------------------
-// Déclaration des structures
+// D�claration des structures
 // -----------------------------------------------------------------------
 
 struct Coef_Correcteurs
@@ -93,17 +93,17 @@ struct Coef_Correcteurs
 };
 
 // -----------------------------------------------------------------------
-// Déclaration des classes
+// D�claration des classes
 // -----------------------------------------------------------------------
 
-// Classe permettant de récupérer les paramètres du drone comptenu dans un fichier
+// Classe permettant de r�cup�rer les param�tres du drone comptenu dans un fichier
 class Parametre_Drone
 {
 public:
-    // Constructeur de la classe prenant en paramètre le nom du fichier contenant les paramètres 
-    Parametre_Drone(std::string nom_fichier_parametre);
+    // Constructeur de la classe prenant en param�tre le nom du fichier contenant les param�tres
+    Parametre_Drone(std::string nom_fichier);
 
-    // Méthodes (fonctions)
+    // M�thodes (fonctions)
     void set_parameters(void);
     float get_rotation_min(void) const;
     float get_rotation_max(void) const;
@@ -123,7 +123,7 @@ private:
     void set_coef_poussee(void);
     void set_roulis(void);
     void set_tangage(void);
-    void set_lacet(void); 
+    void set_lacet(void);
 
     void aller_a_la_ligne(int num_ligne);
     void aller_a_la_ligne_apres(int num_ligne_apres);
@@ -133,7 +133,7 @@ private:
     float masse_arrachage;
     double coef_trainee, coef_poussee;
     struct Coef_Correcteurs roulis,tangage,lacet;
-    std::ifstream fichier;
+    std::ifstream fichier;  // on ouvre le fichier en lecture;
 };
 
 // Classe représentant une equation récurrente du second ordre

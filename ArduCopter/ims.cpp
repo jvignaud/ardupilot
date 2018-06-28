@@ -102,12 +102,13 @@ void test_pwm(int16_t* pwm_w1,int16_t* pwm_w2,int16_t* pwm_w3,int16_t* pwm_w4,in
 }
 
 // ----------------------------------------------------------------------------------------------
-// Focntion de la classe permettant de récupérer les paramètres du drone comptenu dans un fichier 
+// Focntion de la classe permettant de r�cup�rer les param�tres du drone comptenu dans un fichier
 // ----------------------------------------------------------------------------------------------
 
-Parametre_Drone::Parametre_Drone(std::string nom_fichier_parametre)
+Parametre_Drone::Parametre_Drone(std::string nom_fichier)
 {
-    std::ifstream fichier(nom_fichier_parametre.c_str(), std::ios::in);  // on ouvre le fichier en lecture
+    fichier.open(nom_fichier.c_str());  // on ouvre le fichier en lecture
+    set_parameters();
 }
 
 void Parametre_Drone::aller_a_la_ligne(int num_ligne)

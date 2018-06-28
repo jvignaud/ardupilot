@@ -46,7 +46,7 @@ Correcteur_2nd_Ordre_Discret roll_smooth(0.00015242,0.00030483,0.00015242,1.9506
 // ofstream est utilisé pour écrire un fichier CSV nommé IMS5_CSV_LOG.dat, celui-ci contiendra toutes les informations de vol
 std::ofstream outf5;
 
-// 
+//
 Parametre_Drone params("/home/pi/ardupilot/ParametresDrone.conf");
 
 // ---------------------------------------------------------------------------------------------
