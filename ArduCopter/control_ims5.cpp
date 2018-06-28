@@ -30,6 +30,10 @@ void reset_PID(void);
 // --------------------------------------------------------------------
 // Déclaration des variables Globales
 // --------------------------------------------------------------------
+
+// classe qui récupére les paramètres du drone (attention à l'emplacement du fichier sur le drone)
+Parametre_Drone params("/home/pi/ardupilot/ParametresDrone.conf");
+
 // wu = 25 rad/s
 // PID ROLL : y(n)=54.4335.x(n)+-107.3269.x(n-1)+52.9008.x(n-2)+1.839.y(n-1)+-0.83901.y(n-2)
 Correcteur_2nd_Ordre_Discret pid_roll5(54.433526746576554,-107.3268778899634,52.900834170825107,1.839006063381362,-0.839006063381362);
@@ -45,9 +49,6 @@ Correcteur_2nd_Ordre_Discret roll_smooth(0.00015242,0.00030483,0.00015242,1.9506
 
 // ofstream est utilisé pour écrire un fichier CSV nommé IMS5_CSV_LOG.dat, celui-ci contiendra toutes les informations de vol
 std::ofstream outf5;
-
-//
-Parametre_Drone params("/home/pi/ardupilot/ParametresDrone.conf");
 
 // ---------------------------------------------------------------------------------------------
 // ims5_init - Routine d'initialisation du mode de vol IMS5
@@ -228,7 +229,7 @@ void Copter::ims5_run()
     // ----------------------------------------------------------------------------------------
 
     // Affichage des paramètres du drone
-    hal.console->printf("Rotation min : %f et coef yn-1 : %f\n",params.get_rotation_min(),params.get_roulis().yn_1);
+    hal.console->printf("Rotation min : %f et coef du roulis yn-1 : %f\n",params.get_rotation_min(),params.get_roulis().yn_1);
 
     // Affichage des consignes Roll, Pitch, Yaw, Throttle
     //hal.console->printf("Consignes - Roll: %f Pitch: %f Yaw: %f Throttle %f\n",target_roll_smooth*180/M_PI,target_pitch_smooth*180/M_PI,target_yaw_rate_smooth*180/M_PI, target_throttle_newton);

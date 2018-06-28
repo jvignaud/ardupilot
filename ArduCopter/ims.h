@@ -93,18 +93,20 @@ struct Coef_Correcteurs
 };
 
 // -----------------------------------------------------------------------
-// D�claration des classes
+// Déclaration des classes
 // -----------------------------------------------------------------------
 
-// Classe permettant de r�cup�rer les param�tres du drone comptenu dans un fichier
+// Classe permettant de récupérer les paramètres du drone comptenu dans un fichier
 class Parametre_Drone
 {
 public:
-    // Constructeur de la classe prenant en param�tre le nom du fichier contenant les param�tres
+    // Constructeur de la classe prenant en param�tre le nom du fichier contenant les paramètres
     Parametre_Drone(std::string nom_fichier);
 
-    // M�thodes (fonctions)
+    // Méthodes (fonctions)
+    // Fonction permettant de regrouper les fonctions qui récupérent les données du fichier paramètre
     void set_parameters(void);
+    // fonctions qui permettent de retourner les attributs de la classe "Parametre_Drone"
     float get_rotation_min(void) const;
     float get_rotation_max(void) const;
     float get_masse_arrachage(void) const;
@@ -116,6 +118,7 @@ public:
 
 
 private:
+    // fonctions qui permettent de récupérer et initialiser les attributs de la classe "Parametre_Drone"
     void set_rotation_min(void);
     void set_rotation_max(void);
     void set_masse_arrachage(void);

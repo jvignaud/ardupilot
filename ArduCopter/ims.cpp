@@ -102,33 +102,38 @@ void test_pwm(int16_t* pwm_w1,int16_t* pwm_w2,int16_t* pwm_w3,int16_t* pwm_w4,in
 }
 
 // ----------------------------------------------------------------------------------------------
-// Focntion de la classe permettant de r�cup�rer les param�tres du drone comptenu dans un fichier
+// Focntion de la classe permettant de récupérer les paramètres du drone comptenu dans un fichier
 // ----------------------------------------------------------------------------------------------
 
+// Constructeur de la classe Parametre_Drone en prenant pour argument le nom et l'emplacement du fichier contenant les paramètres du drone
 Parametre_Drone::Parametre_Drone(std::string nom_fichier)
 {
     fichier.open(nom_fichier.c_str());  // on ouvre le fichier en lecture
     set_parameters();
 }
 
+// Fonction permettant de faire des retours à la ligne avec le curseur virtuelle à partir du début
+// l'argument num_ligne permet de dire à quelle ligne on souhaite placer notre curseur
 void Parametre_Drone::aller_a_la_ligne(int num_ligne)
 {
-    fichier.seekg(1,std::ios::beg);
+    fichier.seekg(1,std::ios::beg); // place le curseur virtuel au début du fichier
     for (int i = 1; i < num_ligne; i++)
     {
-        fichier.ignore(std::numeric_limits<int>::max(),'\n');
-    }
+        fichier.ignore(std::numeric_limits<int>::max(),'\n');   // fonction qui permet d'ignorer les lignes (en premier argument, cette fonction prend le nombre de caractère à ignorer, 
+    }                                                           // ici le nombre max int,et le deuxième argument, il s'agit du dernier caractère à ignorer, ici il s'agit du retour à la ligne)   
 }
 
+// Fonction permettant de faire "num_ligne_apres" retours à la ligne avec notre curseurs virtuels
 void Parametre_Drone::aller_a_la_ligne_apres(int num_ligne_apres)
 {
-    fichier.seekg(1,std::ios::cur);
+    fichier.seekg(1,std::ios::cur); // place le curseur à sa position relative, sur lui-même
     for (int i = 1; i < num_ligne_apres; i++)
     {
         fichier.ignore(std::numeric_limits<int>::max(),'\n');
     }
 }
 
+// Fonction permettant de regrouper les fonctions qui récupérent les données du fichier paramètre
 void Parametre_Drone::set_parameters(void)
 {
     set_rotation_min();
@@ -141,6 +146,11 @@ void Parametre_Drone::set_parameters(void)
     set_lacet();
     fichier.close();
 }
+
+// fonctions qui permettent de récupérer et initialiser les attributs de la classe "Parametre_Drone"
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// ATTENTION : s'il y a modification du fichier paramètre, il faut changer les lignes de lectures des fonctions qui suivent//
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Parametre_Drone::set_rotation_min(void)
 {
@@ -211,6 +221,8 @@ void Parametre_Drone::set_lacet(void)
     lacet.yn_2 = 0;
     lacet.xn_2 = 0;
 }
+
+// fonctions qui permettent de retourner les attributs de la classe "Parametre_Drone"
 
 float Parametre_Drone::get_rotation_min(void) const
 {
