@@ -16,11 +16,11 @@
 
 #define LOG_TIME 600
 
-#define OFFSET_PWM 8                // en % : valeur de pwm minimale envoyée au moteur
-#define ANGLE_MAX_ROLL_PITCH 20     // angle maximal (en °) pour le pitch et le roll (par défaut, il est à 20°)
-#define YAW_RATE_MAX 45             // vitesse angulaire maximal (en °/s) pour le yaw (par défaut, il est à 67°/s)
+#define OFFSET_PWM 8.0                  // en % : valeur de pwm minimale envoyée au moteur
+#define ANGLE_MAX_ROLL_PITCH 20.0       // angle maximal (en °) pour le pitch et le roll (par défaut, il est à 20°)
+#define YAW_RATE_MAX 45.0               // vitesse angulaire maximal (en °/s) pour le yaw (par défaut, il est à 67°/s)
 #define NOM_PROGRAMME "IMS5"
-#define MASSE_DARRACHAGE 4.09       // masse maximale que les 4 moteurs fornissent (en kg)
+#define MASSE_DARRACHAGE 4.09           // masse maximale que les 4 moteurs fornissent (en kg)
 
 // --------------------------------------------------------------------
 //  Prototype des fonctions locales
@@ -32,7 +32,7 @@ void reset_PID(void);
 // --------------------------------------------------------------------
 
 // classe qui récupére les paramètres du drone (attention à l'emplacement du fichier sur le drone)
-Parametre_Drone params("/home/pi/ardupilot/ParametresDrone.conf");
+Parametres_Drone params("/home/pi/ardupilot/ParametresDrone.conf");
 
 // wu = 25 rad/s
 // PID ROLL : y(n)=54.4335.x(n)+-107.3269.x(n-1)+52.9008.x(n-2)+1.839.y(n-1)+-0.83901.y(n-2)
@@ -108,20 +108,21 @@ void Copter::ims5_run()
     get_pilot_desired_lean_angles(channel_roll->get_control_in(), channel_pitch->get_control_in(), target_roll, target_pitch, (double)ANGLE_MAX_ROLL_PITCH*100);
 
     // Récupération de la consigne en lacet (en centidegrés par seconde)
-    target_yaw_rate = (double)YAW_RATE_MAX / (double)67 *  get_pilot_desired_yaw_rate(channel_yaw->get_control_in());  // 67. est la vitesse maximale par défaut du lacet
+    target_yaw_rate = (double)YAW_RATE_MAX / 67.0 *  get_pilot_desired_yaw_rate(channel_yaw->get_control_in());  // 67.0 est la vitesse maximale par défaut du lacet
 
     // Récupération de la consigne en poussée (valeur entre 0 et 1)
-    pilot_throttle_scaled = get_pilot_desired_throttle(channel_throttle->get_control_in());
+    //pilot_throttle_scaled = get_pilot_desired_throttle(channel_throttle->get_control_in());       // poussée exponentielle
+    pilot_throttle_scaled = get_pilot_desired_throttle(channel_throttle->get_control_in(),0.5f);    // poussée linéaire
 
     // ------------------------------------------------------------------------
     // Adaptation des valeurs des consignes Roll, Pitch, Yaw(R), Throttle en radian et radian/s
     // ------------------------------------------------------------------------
 
     // Conversion des consignes de la radiocommande Roll/Pitch de centi-degrés en radians
-    target_roll_rad=double((target_roll*M_PI)/18000.);
-    target_pitch_rad=double((target_pitch*M_PI)/18000);
+    target_roll_rad=double((target_roll*M_PI)/18000.0);
+    target_pitch_rad=double((target_pitch*M_PI)/18000.0);
     // Conversion des consignes de la radiocommande YAW de centi-degrés par seconde en radians par seconde
-    target_yaw_rate_rad=double((target_yaw_rate*M_PI)/18000);
+    target_yaw_rate_rad=double((target_yaw_rate*M_PI)/18000.0);
     // Conversion des consignes de la radiocommande Throttle de centi-pourcentage en Newton
     target_throttle_newton=double(pilot_throttle_scaled*MASSE_DARRACHAGE*GRAVITY_MSS);
 
@@ -203,16 +204,17 @@ void Copter::ims5_run()
     w4=sqrt(constrain_float((d*u_phi-d*u_theta+b*l*u_r-d*l*u_z)/(b*d*l),0,2*ROTATION_MAX*ROTATION_MAX))/2;     // sinon elle retour la valeur de variable
 
     // Calcul des valeurs de PWM à envoyer à chaque moteur en fonction de w1, w2, w3, w4 - A commenter pour les tests de poussée
-    w1_pwm=(w1/ROTATION_MAX)*(pwm_max-pwm_min)+pwm_min;
-    w2_pwm=(w2/ROTATION_MAX)*(pwm_max-pwm_min)+pwm_min;
-    w3_pwm=(w3/ROTATION_MAX)*(pwm_max-pwm_min)+pwm_min;
-    w4_pwm=(w4/ROTATION_MAX)*(pwm_max-pwm_min)+pwm_min;
+    //w1_pwm=(w1/ROTATION_MAX)*(pwm_max-pwm_min)+pwm_min;
+    //w2_pwm=(w2/ROTATION_MAX)*(pwm_max-pwm_min)+pwm_min;
+    //w3_pwm=(w3/ROTATION_MAX)*(pwm_max-pwm_min)+pwm_min;
+    //w4_pwm=(w4/ROTATION_MAX)*(pwm_max-pwm_min)+pwm_min;
 
     // A décommenter pour les tests de poussée
-    //w1_pwm=pilot_throttle_scaled*(pwm_max-pwm_min)+pwm_min;
-    //w2_pwm=pilot_throttle_scaled*(pwm_max-pwm_min)+pwm_min;
-    //w3_pwm=pilot_throttle_scaled*(pwm_max-pwm_min)+pwm_min;
-    //w4_pwm=pilot_throttle_scaled*(pwm_max-pwm_min)+pwm_min;
+    w1_pwm=pilot_throttle_scaled*(pwm_max-pwm_min)+pwm_min;
+    w2_pwm=pilot_throttle_scaled*(pwm_max-pwm_min)+pwm_min;
+    w3_pwm=pilot_throttle_scaled*(pwm_max-pwm_min)+pwm_min;
+    w4_pwm=pilot_throttle_scaled*(pwm_max-pwm_min)+pwm_min;
+    //hal.console->printf("Test poussée : Consigne poussée en pourcent : %f, PWM min : %d, PWM max : %d et PWM1 : %d, PWM2 : %d, PWM3 : %d, PWM4 : %d\n", pilot_throttle_scaled*100,pwm_max,pwm_min,w1_pwm,w2_pwm,w3_pwm,w4_pwm);
 
     
     // --------------------------------------------------------------------
@@ -229,10 +231,10 @@ void Copter::ims5_run()
     // ----------------------------------------------------------------------------------------
 
     // Affichage des paramètres du drone
-    hal.console->printf("Rotation min : %f et coef du roulis yn-1 : %f\n",params.get_rotation_min(),params.get_roulis().yn_1);
+    //hal.console->printf("Rotation min : %f et coef du roulis yn-1 : %f\n",params.get_rotation_min(),params.get_roulis().yn_1);
 
     // Affichage des consignes Roll, Pitch, Yaw, Throttle
-    //hal.console->printf("Consignes - Roll: %f Pitch: %f Yaw: %f Throttle %f\n",target_roll_smooth*180/M_PI,target_pitch_smooth*180/M_PI,target_yaw_rate_smooth*180/M_PI, target_throttle_newton);
+    hal.console->printf("Consignes - Roll: %f Pitch: %f Yaw: %f Throttle %f\n",target_roll_smooth*180/M_PI,target_pitch_smooth*180/M_PI,target_yaw_rate_smooth*180/M_PI, target_throttle_newton);
 
     // Affichage de l'erreur, des consignes et des sortie de l'AHRS
     //hal.console->printf("Erreur Roll : %f° = Consigne.Roll - AHRS.Roll = %f° - %f° \n",(target_roll_smooth - ahrs.roll)*180/M_PI, target_roll_smooth*180/M_PI, ahrs.roll*180/M_PI);
