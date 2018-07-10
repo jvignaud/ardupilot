@@ -1,8 +1,13 @@
 /*
  * ims.cpp
  *
- *  Created on: Feb 15, 2017
- *      Author: Daniel Monier-Reyes
+ * Créé le : Feb 15, 2017
+ *      Auteur : Daniel Monier-Reyes
+ * 
+ * Modifié  le : 9 Juillet 2018
+ *          par : Jamy Vignaud
+ * 
+ * Fichier qui regroupe toutes les définitions des méthodes des classes
  */
 
 #include "ims.h"
@@ -15,32 +20,113 @@
 
 #include "Copter.h"
 
-// ----------------------------------------------------------------------------------------------
-// Focntion de la classe permettant de récupérer les paramètres du drone comptenu dans un fichier
-// ----------------------------------------------------------------------------------------------
+/*
+ *
+ * Correcteur_1er_Ordre_Discret :
+ * Fonctions de la classe représentant une equation récurrente du premier ordre
+ * 
+ */
+
+// Récupération de la valeur de sortie de l'équation récurrente y(n) du 1er ordre
+double Correcteur_1er_Ordre_Discret::getyn()
+{
+    return yn;
+}
+
+// Réinitialisation des valeurs de l'équation récurrente du 1er ordre
+void Correcteur_1er_Ordre_Discret::reset(void)
+{
+    xn=0;
+    xn_1=0;
+    yn=0;
+    yn_1=0;
+}
+
+// Calcul d'un cycle de l'équation récurrente du 1er ordre
+void Correcteur_1er_Ordre_Discret::cycle(double new_xn)
+{
+    xn=new_xn;
+
+    yn=(cxn*xn)+(cxn_1*xn_1)+(cyn_1*yn_1);
+
+    yn_1=yn;
+    xn_1=xn;
+}
+
+
+/*
+ *
+ * Correcteur_2nd_Ordre_Discret :
+ * Fonctions de la classe représentant une equation récurrente du second ordre
+ * 
+ */
+
+// Récupération de la valeur de sortie de l'équation récurrente y(n) du 2nd ordre
+double Correcteur_2nd_Ordre_Discret::getyn()
+{
+    return yn;
+}
+
+// Réinitialisation des valeurs de l'équation récurrente du 2nd ordre
+void Correcteur_2nd_Ordre_Discret::reset(void)
+{
+    xn=0;
+    xn_1=0;
+    xn_2=0;
+    yn=0;
+    yn_1=0;
+    yn_2=0;
+}
+
+// Calcul d'un cycle de l'équation récurrente du 2nd ordre
+void Correcteur_2nd_Ordre_Discret::cycle(double new_xn)
+{
+    xn=new_xn;
+
+    yn=(cxn*xn)+(cxn_1*xn_1)+(cxn_2*xn_2)+(cyn_1*yn_1)+(cyn_2*yn_2);
+
+    yn_2=yn_1;
+    yn_1=yn;
+    xn_2=xn_1;
+    xn_1=xn;
+}
+
+
+
+/*
+ *
+ * Parametres_Drone :
+ * Fonction de la classe permettant de récupérer les paramètres du drone comptenu dans un fichier
+ * 
+ */
 
 // Constructeur de la classe Parametres_Drone en prenant pour argument le nom et l'emplacement du fichier contenant les paramètres du drone
 Parametres_Drone::Parametres_Drone(std::string nom_fichier)
 {
-    fichier.open(nom_fichier.c_str());  // on ouvre le fichier en lecture
-    set_parameters();
+    // On ouvre le fichier en lecture 
+    fichier.open(nom_fichier.c_str());  
+    // Récupération des valeurs dans le fichier
+    set_parameters();                   
 }
 
-// Fonction permettant de faire des retours à la ligne avec le curseur virtuelle à partir du début
-// l'argument num_ligne permet de dire à quelle ligne on souhaite placer notre curseur
+// Fonction qui permet d'aller à la ligne désirée (mise en argument)
 void Parametres_Drone::aller_a_la_ligne(int num_ligne)
 {
-    fichier.seekg(1,std::ios::beg); // place le curseur virtuel au début du fichier
+    // Place le curseur virtuel au début du fichier
+    fichier.seekg(1,std::ios::beg); 
     for (int i = 1; i < num_ligne; i++)
     {
-        fichier.ignore(std::numeric_limits<int>::max(),'\n');   // fonction qui permet d'ignorer les lignes (en premier argument, cette fonction prend le nombre de caractère à ignorer, 
-    }                                                           // ici le nombre max int,et le deuxième argument, il s'agit du dernier caractère à ignorer, ici il s'agit du retour à la ligne)   
+        // Fonction qui permet d'ignorer les lignes (en premier argument, cette fonction prend le nombre de caractère à ignorer,
+        // ici le nombre max int,et le deuxième argument, il s'agit du dernier caractère à ignorer, ici il s'agit du retour à la ligne)
+        fichier.ignore(std::numeric_limits<int>::max(),'\n');    
+    }                                                              
 }
 
-// Fonction permettant de faire "num_ligne_apres" retours à la ligne avec notre curseurs virtuels
+// Fonction qui permet de sauter le nombre de ligne désirée (demandée en argument)
 void Parametres_Drone::aller_a_la_ligne_apres(int num_ligne_apres)
 {
-    fichier.seekg(1,std::ios::cur); // place le curseur à sa position relative, sur lui-même
+    // Place le curseur à sa position relative, sur lui-même
+    fichier.seekg(1,std::ios::cur); 
     for (int i = 1; i < num_ligne_apres; i++)
     {
         fichier.ignore(std::numeric_limits<int>::max(),'\n');
@@ -64,6 +150,7 @@ void Parametres_Drone::set_parameters(void)
     set_offset_pwm();
     set_angle_max_roulis_tangage();
     set_vitesse_max_lacet();
+    set_poussee_exponentielle();
     set_affichage_parametres();
     set_affichage_consignes();
     set_affichage_erreur();
@@ -75,7 +162,10 @@ void Parametres_Drone::set_parameters(void)
     fichier.close();
 }
 
-// fonctions qui permettent de récupérer et initialiser les attributs de la classe "Parametres_Drone"
+// --------------------------------------------------------------------------------------------------
+// Fonctions qui permettent de récupérer et initialiser les attributs de la classe "Parametres_Drone"
+// --------------------------------------------------------------------------------------------------
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // ATTENTION : s'il y a modification du fichier paramètre, il faut changer les lignes de lectures des fonctions qui suivent//
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -194,6 +284,19 @@ void Parametres_Drone::set_vitesse_max_lacet(void)
     fichier >> vitesse_max_lacet;
 }
 
+void set_poussee_exponentielle(void)
+{
+    aller_a_la_ligne_apres(3);
+    if ( (texte.compare("true") == 0 || texte.compare("vrai") == 0 ) )
+    {
+        poussee_exponentielle = true;
+    }
+    else 
+    {
+        poussee_exponentielle = false;
+    }
+}
+
 void Parametres_Drone::set_affichage_parametres(void)
 {
     aller_a_la_ligne_apres(7);
@@ -306,9 +409,9 @@ void Parametres_Drone::set_test_poussee(void)
     }
 }
 
-
-
+// -----------------------------------------------------------------------------------
 // fonctions qui permettent de retourner les attributs de la classe "Parametres_Drone"
+// -----------------------------------------------------------------------------------
 
 std::string Parametres_Drone::get_fichier_log(void) const
 {
@@ -380,6 +483,11 @@ float Parametres_Drone::get_vitesse_max_lacet(void) const
     return vitesse_max_lacet;
 }
 
+bool Parametres_Drone::get_poussee_exponentielle(void) const
+{
+    return poussee_exponentielle;
+}
+
 bool Parametres_Drone::get_affichage_parametres(void) const
 {
     return affichage_parametres;
@@ -420,73 +528,16 @@ bool Parametres_Drone::get_test_poussee(void) const
     return test_poussee;
 }
 
-// ----------------------------------------------------------------------------
-// Fonctions de la classe représentant une equation récurrente du premier ordre
-// ----------------------------------------------------------------------------
-
-// Récupération de la valeur de sortie de l'équation récurrente y(n) du 1er ordre
-double Correcteur_1er_Ordre_Discret::getyn()
-{
-    return yn;
-}
-
-// Réinitialisation des valeurs de l'équation récurrente du 1er ordre
-void Correcteur_1er_Ordre_Discret::reset(void)
-{
-    xn=0;
-    xn_1=0;
-    yn=0;
-    yn_1=0;
-}
-
-// Calcul d'un cycle de l'équation récurrente du 1er ordre
-void Correcteur_1er_Ordre_Discret::cycle(double new_xn)
-{
-    xn=new_xn;
-
-    yn=(cxn*xn)+(cxn_1*xn_1)+(cyn_1*yn_1);
-
-    yn_1=yn;
-    xn_1=xn;
-}
-
-// ----------------------------------------------------------------------------
-// Fonctions de la classe représentant une equation récurrente du second ordre
-// ----------------------------------------------------------------------------
-
-// Récupération de la valeur de sortie de l'équation récurrente y(n) du 2nd ordre
-double Correcteur_2nd_Ordre_Discret::getyn()
-{
-    return yn;
-}
-
-// Réinitialisation des valeurs de l'équation récurrente du 2nd ordre
-void Correcteur_2nd_Ordre_Discret::reset(void)
-{
-    xn=0;
-    xn_1=0;
-    xn_2=0;
-    yn=0;
-    yn_1=0;
-    yn_2=0;
-}
-
-// Calcul d'un cycle de l'équation récurrente du 2nd ordre
-void Correcteur_2nd_Ordre_Discret::cycle(double new_xn)
-{
-    xn=new_xn;
-
-    yn=(cxn*xn)+(cxn_1*xn_1)+(cxn_2*xn_2)+(cyn_1*yn_1)+(cyn_2*yn_2);
-
-    yn_2=yn_1;
-    yn_1=yn;
-    xn_2=xn_1;
-    xn_1=xn;
-}
 
 
-// WIP
+/*
+ *
+ * Quadri :
+ * Fonction de la classe permettant de récupérer les données des capteurs, lire le fichier mis en argument (généré par un script MatLab), et de calculer les PWM
+ * 
+ */
 
+// Constructeur de la classe Quadri prenant en paramètre le nom et l'emplacement du fichier (généré par un script MatLab) qui contient les paramètres
 Quadri::Quadri(std::string emplacement_fichier_parametres) : 
 // initialisation des classes
 params(emplacement_fichier_parametres),
@@ -497,6 +548,7 @@ roll_smooth(params.get_consigne_smooth().xn,params.get_consigne_smooth().xn_1,pa
 pitch_smooth(roll_smooth),
 yaw_rate_smooth(roll_smooth)
 {
+    //initialisations des attributs
     nom_programme = params.get_fichier_log();
     fichier_log_ouvert=false;
     titre_log();
@@ -514,6 +566,7 @@ yaw_rate_smooth(roll_smooth)
     w4_pwm = 0;
     pwm_min = 0;
     pwm_max = 0;
+    offset_pwm = 0;
     target_roll = 0;
     target_pitch = 0;
     target_yaw_rate = 0;
@@ -531,6 +584,7 @@ yaw_rate_smooth(roll_smooth)
     debug = params.get_affichage_AHRS() || params.get_affichage_commandes() || params.get_affichage_consignes() || params.get_affichage_erreur() || params.get_affichage_parametres() || params.get_affichage_pwm() || params.get_affichage_sorties_PID() || params.get_test_poussee();
 }
 
+// Fonction qui donne un titre au fichier log
 void Quadri::titre_log(void)
 {
     // Construction de la date et de l'heure pour rendre le nom du fichier de log unique
@@ -557,7 +611,7 @@ void Quadri::titre_log(void)
             fichier_log << "AHRS.Roll,AHRS.Pitch,AHRS.R,RC.Roll,RC.Pitch,RC.R,RC.Thrust,Uphi,Utheta,Ur,Uz,w1,w2,w3,w4,w1_pwm,w2_pwm,w3_pwm,w4_pwm" << std::endl;
 }
 
-
+// Fonction qui permet d'écrire les paramètres dans le fichier log
 void Quadri::ecriture_log(void)
 {
     // "AHRS.Roll,AHRS.Pitch,AHRS.R,RC.Roll,RC.Pitch,RC.R,RC.Thrust,Uphi,Utheta,Ur,Uz,w1,w2,w3,w4,w1_pwm,w2_pwm,w3_pwm,w4_pwm"
@@ -601,7 +655,7 @@ void Quadri::ecriture_log(void)
     fichier_log << std::endl;
 }
 
-// Test pour protection des moteurs
+// Test pour protection des moteurs (on veut éviter que les moteurs ont un pwm supérieur au pwm maximal)
 void Quadri::test_pwm(void)
 {
     if (w1_pwm > pwm_max)
@@ -617,8 +671,12 @@ void Quadri::test_pwm(void)
         w4_pwm = pwm_max;
 }
 
+// ---------------------------------------------------------------
+// Fonctions qui récupérent et calculent les valeurs des variables
+// ---------------------------------------------------------------
 
-    
+// Calcul des sorties des PIDs 
+
 void Quadri::set_u_phi(void)
 {
     target_roll_rad=double((target_roll*M_PI)/18000.0);
@@ -652,6 +710,8 @@ void Quadri::set_u_z(void)
     u_z=-target_throttle_newton/(cosf(angle_roulis)*cosf(angle_roulis));
 }
 
+// Valeurs (angles et vitesse angulaire) lues par les capteurs
+
 void Quadri::set_angle_roulis(double m_angle_roulis)
 {
     angle_roulis = m_angle_roulis;
@@ -667,6 +727,8 @@ void Quadri::set_vitesse_angle_lacet(double m_vitesse_angle_lacet)
     vitesse_angle_lacet = m_vitesse_angle_lacet;
 }
 
+// Valeurs des PWM min et max obtenues par des fonctions d'ArduPilot
+
 void Quadri::set_pwm_min(double m_pwm_min)
 {
     offset_pwm = params.get_offset_pwm()/100*(pwm_max - m_pwm_min);
@@ -678,6 +740,8 @@ void Quadri::set_pwm_max(double m_pwm_max)
     pwm_max = m_pwm_max;
 }
 
+// Fonction récupérant les consignes de la manette
+
 void Quadri::set_pilot_throttle_scaled(double m_pilot_throttle_scaled)
 {
     pilot_throttle_scaled = m_pilot_throttle_scaled;
@@ -687,6 +751,8 @@ void Quadri::set_target_yaw_rate(float m_target_yaw_rate)
 {
     target_yaw_rate = m_target_yaw_rate;
 }
+
+// Calculs des PWM envoyés à chaque moteur
 
 void Quadri::set_w1_pwm(void)
 {
@@ -748,6 +814,8 @@ void Quadri::set_w4_pwm(void)
     }
 }
 
+// Fonction regroupant d'autres fonctions afin de ne pas mettre plusieurs lignes dans le fichier "control_ims"
+
 void Quadri::set_pwm_moteurs(void)
 {
     // Récupération des commandes
@@ -776,6 +844,7 @@ void Quadri::set_pwm_moteurs(void)
 }
 
 // Fonction qui test et initialise un fichier log
+
 void Quadri::ouverture_fichier_log(void)
 {
     if (fichier_log_ouvert==false) { // Si le fichier de log n'est pas encore ouvert alors l'ouvrir
@@ -786,6 +855,7 @@ void Quadri::ouverture_fichier_log(void)
 }
 
 // Fonction qui test et ferme le fichier log
+
 void Quadri::fermeture_fichier_log(void)
 {
     if (fichier_log_ouvert==true) { // Si le fichier de log est ouvert alors le fermer
@@ -793,6 +863,8 @@ void Quadri::fermeture_fichier_log(void)
         fichier_log_ouvert=false;
     }
 }
+
+// Fonction qui reset tous les correcteurs
 
 void Quadri::reset_PID(void)
 {
@@ -803,6 +875,10 @@ void Quadri::reset_PID(void)
     pitch_smooth.reset();
     yaw_rate_smooth.reset();
 }
+
+// ------------------------------------------------------------
+// Fonction qui retourne les valeurs des attributs de la classe
+// ------------------------------------------------------------
 
 double Quadri::get_w1_pwm(void) const
 {
@@ -834,8 +910,13 @@ float Quadri::get_vitesse_max_lacet(void) const
     return params.get_vitesse_max_lacet();
 }
 
+bool get_poussee_exponentielle(void) const
+{
+    return params.poussee_exponentielle();
+}
+
 // ----------------------------------------------------------------------------------------
-// Affichage de la sortie de l'AHRS et des consignes
+// Debugger qui affiche toutes ses données sur la console ou dans le fichier "startup_log"
 // ----------------------------------------------------------------------------------------
 void Quadri::debugger(void)
 {
