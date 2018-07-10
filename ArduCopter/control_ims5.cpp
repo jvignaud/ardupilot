@@ -234,7 +234,7 @@ void Copter::ims5_run()
     //hal.console->printf("Rotation min : %f et coef du roulis yn-1 : %f\n",params.get_rotation_min(),params.get_roulis().yn_1);
 
     // Affichage des consignes Roll, Pitch, Yaw, Throttle
-    hal.console->printf("Consignes - Roll: %f Pitch: %f Yaw: %f Throttle %f\n",target_roll_smooth*180/M_PI,target_pitch_smooth*180/M_PI,target_yaw_rate_smooth*180/M_PI, target_throttle_newton);
+    //hal.console->printf("Consignes - Roll: %f Pitch: %f Yaw: %f Throttle %f\n",target_roll_smooth*180/M_PI,target_pitch_smooth*180/M_PI,target_yaw_rate_smooth*180/M_PI, target_throttle_newton);
 
     // Affichage de l'erreur, des consignes et des sortie de l'AHRS
     //hal.console->printf("Erreur Roll : %f° = Consigne.Roll - AHRS.Roll = %f° - %f° \n",(target_roll_smooth - ahrs.roll)*180/M_PI, target_roll_smooth*180/M_PI, ahrs.roll*180/M_PI);
@@ -245,7 +245,7 @@ void Copter::ims5_run()
     //hal.console->printf("AHRS - Roll: %f Pitch:%f R:%f\n",ahrs.roll, ahrs.pitch, ahrs.get_gyro().z);
 
     // Affichage des valeurs PMW des moteurs
-    //hal.console->printf("PWM - Min: %i Max: %i Actuel:%i w4:%i\n",pwm_min,pwm_max,pwm,w4_pwm);
+    //hal.console->printf("PWM - Min: %i Max: %i Actuel:%i \n",pwm_min,pwm_max,w1_pwm);
 
     // Affichage des sorties des PIDs
     //hal.console->printf("PIDs - UPhi:%f, UTheta:%f, Ur:%f, Uz:%f\n",u_phi,u_theta,u_r,u_z);

@@ -225,15 +225,15 @@ void Parametres_Drone::set_lacet(void)
 void Parametres_Drone::set_consigne_smooth(void)
 {
     aller_a_la_ligne_apres(6);
-    fichier >> tangage.xn;
+    fichier >> consigne_smooth.xn;
     aller_a_la_ligne_apres(1);
-    fichier >> tangage.xn_1;
+    fichier >> consigne_smooth.xn_1;
     aller_a_la_ligne_apres(1);
-    fichier >> tangage.xn_2;
+    fichier >> consigne_smooth.xn_2;
     aller_a_la_ligne_apres(1);
-    fichier >> tangage.yn_1;
+    fichier >> consigne_smooth.yn_1;
     aller_a_la_ligne_apres(1);
-    fichier >> tangage.yn_2;
+    fichier >> consigne_smooth.yn_2;
 }
 
 // fonctions qui permettent de retourner les attributs de la classe "Parametres_Drone"
@@ -346,28 +346,3 @@ void Correcteur_2nd_Ordre_Discret::cycle(double new_xn)
     xn_2=xn_1;
     xn_1=xn;
 }
-
-
-
-// -----------------------------------------------------------------------------
-// Fonctions de lecture écriture de fichiers
-// -----------------------------------------------------------------------------
-/*void open_file_csv_log(void)
-{
-    if (!outf)
-    {
-        // If we couldn't open the output file stream for writing
-        // Print an error and exit
-        return 1;
-    }
-}*/
-
-/*void write_csv_log(std::ofstream myfile)
-{
-    myfile.open("IMS1_CSV_LOG.dat");
-    // We'll write two lines into this file
-    myfile << "This is line 1" << std::endl;
-    myfile << "This is line 2" << std::endl;
-    myfile.close();
-}
-*/
