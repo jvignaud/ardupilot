@@ -17,6 +17,7 @@
 
 #define LOG_TIME 600
 
+
 // --------------------------------------------------------------------
 // Déclaration des variables Globales
 // --------------------------------------------------------------------
@@ -24,6 +25,8 @@
 // Classe Quadri permettant de récupérer les données des capteurs, lire le fichier mis en argument (généré par un script MatLab), et de calculer les PWM
 // /!\ Attention à l'emplacement du fichier sur le drone /!\  
 Quadri Drone_RPi("ParametresDrone.conf");
+
+
 
 // ---------------------------------------------------------------------------------------------
 // ims_init - Routine d'initialisation du mode de vol IMS
@@ -34,7 +37,7 @@ bool Copter::ims_init(bool ignore_checks)
     Drone_RPi.set_pwm_min(copter.motors.get_pwm_output_min());
     Drone_RPi.set_pwm_max(copter.motors.get_pwm_output_max());
 
-    // Si le drone est atterri et que le mode à partir duquel nous passons n'a pas de throttle manuel et le manche des gaz est trop haut
+    // Si le drone est atterri et que le mode à partir duquel nous avons switché n'a pas de poussée manuel et le stick de poussée est trop haut
     if (motors.armed() && ap.land_complete && !mode_has_manual_throttle(control_mode) && (get_pilot_desired_throttle(channel_throttle->get_control_in()) > get_non_takeoff_throttle())) 
 	{
         return false;
@@ -45,6 +48,8 @@ bool Copter::ims_init(bool ignore_checks)
 
     return true;
 }
+
+
 
 // ---------------------------------------------------------------------------------------------
 // ims_run - Routine d'appel du mode de vol IMS à exécuter à 400Hz
