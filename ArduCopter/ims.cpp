@@ -284,7 +284,7 @@ void Parametres_Drone::set_vitesse_max_lacet(void)
     fichier >> vitesse_max_lacet;
 }
 
-void set_poussee_exponentielle(void)
+void Parametres_Drone::set_poussee_exponentielle(void)
 {
     aller_a_la_ligne_apres(3);
     if ( (texte.compare("true") == 0 || texte.compare("vrai") == 0 ) )
@@ -910,9 +910,9 @@ float Quadri::get_vitesse_max_lacet(void) const
     return params.get_vitesse_max_lacet();
 }
 
-bool get_poussee_exponentielle(void) const
+bool Quadri::get_poussee_exponentielle(void) const
 {
-    return params.poussee_exponentielle();
+    return params.get_poussee_exponentielle();
 }
 
 // ----------------------------------------------------------------------------------------
