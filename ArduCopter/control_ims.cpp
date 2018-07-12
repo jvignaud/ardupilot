@@ -8,7 +8,7 @@
  *          par : Jamy Vignaud
  * 
  * Routines d'initialisation et d'appel pour le mode de vol IMS
- * Utilisation de la classe Quadri afin de simplifié la lecture du code et d'optimiser les calculs
+ * Utilisation de la classe Quadri afin de simplifier la lecture du code et d'optimiser les calculs
  */
 
 #include "Copter.h"
