@@ -287,6 +287,7 @@ void Parametres_Drone::set_vitesse_max_lacet(void)
 void Parametres_Drone::set_poussee_exponentielle(void)
 {
     aller_a_la_ligne_apres(3);
+    fichier >> texte;
     if ( (texte.compare("true") == 0 || texte.compare("vrai") == 0 ) )
     {
         poussee_exponentielle = true;
