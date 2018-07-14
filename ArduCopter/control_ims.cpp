@@ -24,7 +24,7 @@
 
 // Classe Quadri permettant de récupérer les données des capteurs, lire le fichier mis en argument (généré par un script MatLab), et de calculer les PWM
 // /!\ Attention à l'emplacement du fichier sur le drone  
-Quadri Drone_RPi("ParametresDrone.conf");
+Quadri Drone_RPi("/home/pi/ardupilot/build/navio2/bin/ParametresDrone.conf");
 
 
 
