@@ -70,7 +70,7 @@ public:
     void cycle(double new_xn);
 
     // Récupération de la valeur de sortie de l'équation récurrente y(n)
-    double getyn();
+    double getyn() const;
 
     // Réinitialisation des valeurs de l'équation récurrente
     void reset(void);
@@ -126,7 +126,7 @@ public:
     void cycle(double new_xn);
 
     // Récupération de la valeur de sortie de l'équation récurrente y(n)
-    double getyn();
+    double getyn() const;
 
     // Réinitialisation des valeurs de l'équation récurrente
     void reset(void);
@@ -168,7 +168,6 @@ public:
     void set_parameters(void);
 
     // fonctions qui permettent de retourner les attributs de la classe "Parametres_Drone"
-    float get_rotation_min(void) const;
     float get_rotation_max(void) const;
     float get_masse_arrachage(void) const;
     double get_coef_trainee(void) const;
@@ -198,7 +197,6 @@ public:
 private:
     // fonctions qui permettent de récupérer et initialiser les attributs de la classe "Parametres_Drone"
     void set_fichier_log(void);
-    void set_rotation_min(void);
     void set_rotation_max(void);
     void set_masse_arrachage(void);
     void set_coef_trainee(void);
@@ -236,8 +234,8 @@ private:
     // Nom du fichier log
     std::string fichier_log;
 
-    // Rotation minimale et maximale
-    float rotation_min, rotation_max;
+    // Rotation maximale
+    float rotation_max;
 
     // Masse que produit le drone lorsque le stick de poussée est à fond
     float masse_arrachage;

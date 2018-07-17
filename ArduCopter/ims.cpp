@@ -28,7 +28,7 @@
  */
 
 // Récupération de la valeur de sortie de l'équation récurrente y(n) du 1er ordre
-double Correcteur_1er_Ordre_Discret::getyn()
+double Correcteur_1er_Ordre_Discret::getyn() const
 {
     return yn;
 }
@@ -62,7 +62,7 @@ void Correcteur_1er_Ordre_Discret::cycle(double new_xn)
  */
 
 // Récupération de la valeur de sortie de l'équation récurrente y(n) du 2nd ordre
-double Correcteur_2nd_Ordre_Discret::getyn()
+double Correcteur_2nd_Ordre_Discret::getyn() const
 {
     return yn;
 }
@@ -137,7 +137,6 @@ void Parametres_Drone::aller_a_la_ligne_apres(int num_ligne_apres)
 void Parametres_Drone::set_parameters(void)
 {
     set_fichier_log();
-    set_rotation_min();
     set_rotation_max();
     set_coef_trainee();
     set_coef_poussee();
@@ -174,12 +173,6 @@ void Parametres_Drone::set_fichier_log(void)
 {
     aller_a_la_ligne(6);
     fichier >> fichier_log;
-}
-
-void Parametres_Drone::set_rotation_min(void)
-{
-    aller_a_la_ligne_apres(3);
-    fichier >> rotation_min;
 }
 
 void Parametres_Drone::set_rotation_max(void)
@@ -417,11 +410,6 @@ void Parametres_Drone::set_test_poussee(void)
 std::string Parametres_Drone::get_fichier_log(void) const
 {
     return fichier_log;
-}
-
-float Parametres_Drone::get_rotation_min(void) const
-{
-    return rotation_min;
 }
 
 float Parametres_Drone::get_rotation_max(void) const
@@ -708,7 +696,7 @@ void Quadri::set_u_r(void)
 void Quadri::set_u_z(void)
 {
     target_throttle_newton=double(pilot_throttle_scaled*params.get_masse_arrachage()*GRAVITY_MSS);
-    u_z=-target_throttle_newton/(cosf(angle_roulis)*cosf(angle_roulis));
+    u_z=-target_throttle_newton/(cosf(angle_roulis)*cosf(angle_pitch));
 }
 
 // Valeurs (angles et vitesse angulaire) lues par les capteurs
@@ -757,17 +745,20 @@ void Quadri::set_target_yaw_rate(float m_target_yaw_rate)
 
 void Quadri::set_w1_pwm(void)
 {
-    if (!params.get_test_poussee())
+    if (!params.get_test_poussee()) // si on effectue un vol en mode "normal"
     {
+        // Calcule de la rotation des moteurs (en rad/s)
         //constrain_float(variable, valeur_min, valeur_max) 
         //si la valeur de "variable" est inférieure à valeur_min alors la fonction retour : valeur_min
         //si la valeur de "variable" est supérieure à valeur_max alors la fonction retour : valeur_max
         //sinon elle retour la valeur de variable
         // w1=sqrt((d*u_phi+d*u_theta-b*l*u_r-d*l*u_z)/(b*d*l)/2;  
-        w1=sqrt(constrain_float((params.get_coef_trainee()*u_phi+params.get_coef_trainee()*u_theta-params.get_coef_poussee()*params.get_envergure()*u_r-params.get_coef_trainee()*params.get_envergure()*u_z)/(params.get_coef_poussee()*params.get_coef_trainee()*params.get_envergure()),0,4*params.get_rotation_max()*params.get_rotation_max()))/2;     //constrain_float(variable, valeur_min, valeur_max)
+        w1=sqrt(constrain_float((params.get_coef_trainee()*u_phi+params.get_coef_trainee()*u_theta-params.get_coef_poussee()*params.get_envergure()*u_r-params.get_coef_trainee()*params.get_envergure()*u_z)/(params.get_coef_poussee()*params.get_coef_trainee()*params.get_envergure()),0,4*params.get_rotation_max()*params.get_rotation_max()))/2;
+        
+        // Calcule du PWM à envoyer au moteur 1
         w1_pwm=(w1/params.get_rotation_max())*(pwm_max-pwm_min)+pwm_min;
     }
-    else 
+    else    // si on est en mode "test de poussée"
     {
         w1_pwm=pilot_throttle_scaled*(pwm_max-pwm_min)+pwm_min;
     }
@@ -775,13 +766,16 @@ void Quadri::set_w1_pwm(void)
 
 void Quadri::set_w2_pwm(void)
 {
-    if (!params.get_test_poussee())
+    if (!params.get_test_poussee()) // si on effectue un vol en mode "normal"
     {
+        // Calcule de la rotation des moteurs (en rad/s)
         // w2=sqrt(-(d*u_phi+d*u_theta+b*l*u_r+d*l*u_z)/(b*d*l)/2;   
-        w2=sqrt(constrain_float(-(params.get_coef_trainee()*u_phi+params.get_coef_trainee()*u_theta+params.get_coef_poussee()*params.get_envergure()*u_r+params.get_coef_trainee()*params.get_envergure()*u_z)/(params.get_coef_poussee()*params.get_coef_trainee()*params.get_envergure()),0,4*params.get_rotation_max()*params.get_rotation_max()))/2;     //constrain_float(variable, valeur_min, valeur_max)
+        w2=sqrt(constrain_float(-(params.get_coef_trainee()*u_phi+params.get_coef_trainee()*u_theta+params.get_coef_poussee()*params.get_envergure()*u_r+params.get_coef_trainee()*params.get_envergure()*u_z)/(params.get_coef_poussee()*params.get_coef_trainee()*params.get_envergure()),0,4*params.get_rotation_max()*params.get_rotation_max()))/2;
+        
+        // Calcule du PWM à envoyer au moteur 2
         w2_pwm=(w2/params.get_rotation_max())*(pwm_max-pwm_min)+pwm_min;
     }
-    else 
+    else    // si on est en mode "test de poussée" 
     {
         w2_pwm=pilot_throttle_scaled*(pwm_max-pwm_min)+pwm_min;
     }
@@ -789,13 +783,16 @@ void Quadri::set_w2_pwm(void)
 
 void Quadri::set_w3_pwm(void)
 {
-    if (!params.get_test_poussee())
+    if (!params.get_test_poussee()) // si on effectue un vol en mode "normal"
     {
+        // Calcule de la rotation des moteurs (en rad/s)
         // w3=sqrt(-(d*u_phi-d*u_theta-b*l*u_r+d*l*u_z)/(b*d*l)/2;
-        w3=sqrt(constrain_float(-(params.get_coef_trainee()*u_phi-params.get_coef_trainee()*u_theta-params.get_coef_poussee()*params.get_envergure()*u_r+params.get_coef_trainee()*params.get_envergure()*u_z)/(params.get_coef_poussee()*params.get_coef_trainee()*params.get_envergure()),0,4*params.get_rotation_max()*params.get_rotation_max()))/2;     //constrain_float(variable, valeur_min, valeur_max)
+        w3=sqrt(constrain_float(-(params.get_coef_trainee()*u_phi-params.get_coef_trainee()*u_theta-params.get_coef_poussee()*params.get_envergure()*u_r+params.get_coef_trainee()*params.get_envergure()*u_z)/(params.get_coef_poussee()*params.get_coef_trainee()*params.get_envergure()),0,4*params.get_rotation_max()*params.get_rotation_max()))/2;
+        
+        // Calcule du PWM à envoyer au moteur 3
         w3_pwm=(w3/params.get_rotation_max())*(pwm_max-pwm_min)+pwm_min;
     }
-    else 
+    else    // si on est en mode "test de poussée" 
     {
         w3_pwm=pilot_throttle_scaled*(pwm_max-pwm_min)+pwm_min;
     }
@@ -803,13 +800,16 @@ void Quadri::set_w3_pwm(void)
 
 void Quadri::set_w4_pwm(void)
 {
-    if (!params.get_test_poussee())
+    if (!params.get_test_poussee()) // si on effectue un vol en mode "normal"
     {
+        // Calcule de la rotation des moteurs (en rad/s)
         // w4=sqrt((d*u_phi-d*u_theta+b*l*u_r-d*l*u_z)/(b*d*l)/2; 
-        w4=sqrt(constrain_float((params.get_coef_trainee()*u_phi-params.get_coef_trainee()*u_theta+params.get_coef_poussee()*params.get_envergure()*u_r-params.get_coef_trainee()*params.get_envergure()*u_z)/(params.get_coef_poussee()*params.get_coef_trainee()*params.get_envergure()),0,4*params.get_rotation_max()*params.get_rotation_max()))/2;     //constrain_float(variable, valeur_min, valeur_max)
+        w4=sqrt(constrain_float((params.get_coef_trainee()*u_phi-params.get_coef_trainee()*u_theta+params.get_coef_poussee()*params.get_envergure()*u_r-params.get_coef_trainee()*params.get_envergure()*u_z)/(params.get_coef_poussee()*params.get_coef_trainee()*params.get_envergure()),0,4*params.get_rotation_max()*params.get_rotation_max()))/2;
+        
+        // Calcule du PWM à envoyer au moteur 4
         w4_pwm=(w4/params.get_rotation_max())*(pwm_max-pwm_min)+pwm_min;
     }
-    else 
+    else    // si on est en mode "test de poussée" 
     {
         w4_pwm=pilot_throttle_scaled*(pwm_max-pwm_min)+pwm_min;
     }
