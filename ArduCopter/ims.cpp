@@ -970,7 +970,7 @@ void Quadri::debugger(void)
     // Affichage des éléments importants pour le test de poussée
     if (params.get_test_poussee())
     {
-        hal.console->printf("Test poussée : Consigne poussée en pourcent : %f, PWM min : %d, PWM max : %d, PWM : %d et rotation des moteurs : %f rad/s\n", pilot_throttle_scaled*100,pwm_max,pwm_min,w1_pwm,(double) ((w1_pwm - pwm_min)* params.get_rotation_max()) / (double) ((pwm_max-pwm_min)));
+        hal.console->printf("Test poussée : Consigne poussée en pourcent : %f, PWM min : %d, PWM max : %d et PWM : %d\n", pilot_throttle_scaled*100,pwm_max,pwm_min,w1_pwm);
 
     }
 }
