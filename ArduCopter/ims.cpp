@@ -696,7 +696,7 @@ void Quadri::set_u_r(void)
 void Quadri::set_u_z(void)
 {
     target_throttle_newton=double(pilot_throttle_scaled*params.get_masse_arrachage()*GRAVITY_MSS);
-    u_z=-target_throttle_newton/(cosf(angle_roulis)*cosf(angle_pitch));
+    u_z=-target_throttle_newton/(cosf(angle_roulis)*cosf(angle_tangage));
 }
 
 // Valeurs (angles et vitesse angulaire) lues par les capteurs
