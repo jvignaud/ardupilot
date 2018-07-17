@@ -29,3 +29,7 @@ alias waf="$PWD/modules/waf/waf-light"
 ./waf configure --board=navio2
 echo "Compilation du fichier"
 ./waf --targets bin/arducopter-quad
+echo ""
+echo "Envoi du fichier vers la RPi"
+echo "Mot de passe : raspberry"
+scp build/navio2/bin/arducopter-quad pi@172.16.10.10:~/ardupilot/build/navio2/bin/
