@@ -171,75 +171,75 @@ void Parametres_Drone::set_parameters(void)
 
 void Parametres_Drone::set_fichier_log(void)
 {
-    aller_a_la_ligne(6);
+    aller_a_la_ligne(6); // ligne 6
     fichier >> fichier_log;
 }
 
 void Parametres_Drone::set_rotation_max(void)
 {
-    aller_a_la_ligne_apres(3);
+    aller_a_la_ligne_apres(3); // ligne 9
     fichier >> rotation_max;
 }
 
 void Parametres_Drone::set_coef_trainee(void)
 {
-    aller_a_la_ligne_apres(3);
+    aller_a_la_ligne_apres(3); // ligne 12
     fichier >> coef_trainee;
 }
 
 void Parametres_Drone::set_coef_poussee(void)
 {
-    aller_a_la_ligne_apres(3);
+    aller_a_la_ligne_apres(3); // ligne 15
     fichier >> coef_poussee;
 }
 
 void Parametres_Drone::set_envergure(void)
 {
-    aller_a_la_ligne_apres(3);
+    aller_a_la_ligne_apres(3); // ligne 18
     fichier >> envergure;
 }
 
 void Parametres_Drone::set_masse_arrachage(void)
 {
-    aller_a_la_ligne_apres(3);
+    aller_a_la_ligne_apres(3); // ligne 21
     fichier >> masse_arrachage;
 }
 
 void Parametres_Drone::set_roulis(void)
 {
-    aller_a_la_ligne_apres(6);
+    aller_a_la_ligne_apres(6); // ligne 27
     fichier >> roulis.xn;
-    aller_a_la_ligne_apres(1);
+    aller_a_la_ligne_apres(1); // ligne 28
     fichier >> roulis.xn_1;
-    aller_a_la_ligne_apres(1);
+    aller_a_la_ligne_apres(1); // ligne 29
     fichier >> roulis.xn_2;
-    aller_a_la_ligne_apres(1);
+    aller_a_la_ligne_apres(1); // ligne 30
     fichier >> roulis.yn_1;
-    aller_a_la_ligne_apres(1);
+    aller_a_la_ligne_apres(1); // ligne 31
     fichier >> roulis.yn_2;
 }
 
 void Parametres_Drone::set_tangage(void)
 {
-    aller_a_la_ligne_apres(6);
+    aller_a_la_ligne_apres(6); // ligne 37
     fichier >> tangage.xn;
-    aller_a_la_ligne_apres(1);
+    aller_a_la_ligne_apres(1); // ligne 38
     fichier >> tangage.xn_1;
-    aller_a_la_ligne_apres(1);
+    aller_a_la_ligne_apres(1); // ligne 39
     fichier >> tangage.xn_2;
-    aller_a_la_ligne_apres(1);
+    aller_a_la_ligne_apres(1); // ligne 40
     fichier >> tangage.yn_1;
-    aller_a_la_ligne_apres(1);
+    aller_a_la_ligne_apres(1); // ligne 41
     fichier >> tangage.yn_2;
 }
 
 void Parametres_Drone::set_lacet(void)
 {
-    aller_a_la_ligne_apres(6);
+    aller_a_la_ligne_apres(6); // ligne 47
     fichier >> lacet.xn;
-    aller_a_la_ligne_apres(1);
+    aller_a_la_ligne_apres(1); // ligne 48
     fichier >> lacet.xn_1;
-    aller_a_la_ligne_apres(1);
+    aller_a_la_ligne_apres(1); // ligne 49
     fichier >> lacet.yn_1;
     lacet.yn_2 = 0;
     lacet.xn_2 = 0;
@@ -247,39 +247,39 @@ void Parametres_Drone::set_lacet(void)
 
 void Parametres_Drone::set_consigne_smooth(void)
 {
-    aller_a_la_ligne_apres(6);
+    aller_a_la_ligne_apres(6); // ligne 55
     fichier >> consigne_smooth.xn;
-    aller_a_la_ligne_apres(1);
+    aller_a_la_ligne_apres(1); // ligne 56
     fichier >> consigne_smooth.xn_1;
-    aller_a_la_ligne_apres(1);
+    aller_a_la_ligne_apres(1); // ligne 57
     fichier >> consigne_smooth.xn_2;
-    aller_a_la_ligne_apres(1);
+    aller_a_la_ligne_apres(1); // ligne 58
     fichier >> consigne_smooth.yn_1;
-    aller_a_la_ligne_apres(1);
+    aller_a_la_ligne_apres(1); // ligne 59
     fichier >> consigne_smooth.yn_2;
 }
 
 void Parametres_Drone::set_offset_pwm(void)
 {
-    aller_a_la_ligne_apres(3);
+    aller_a_la_ligne_apres(3); // ligne 62
     fichier >> offset_pwm;
 }
 
 void Parametres_Drone::set_angle_max_roulis_tangage(void)
 {
-    aller_a_la_ligne_apres(3);
+    aller_a_la_ligne_apres(3); // ligne 65
     fichier >> angle_max_roulis_tangage;
 }
 
 void Parametres_Drone::set_vitesse_max_lacet(void)
 {
-    aller_a_la_ligne_apres(3);
+    aller_a_la_ligne_apres(3); // ligne 68
     fichier >> vitesse_max_lacet;
 }
 
 void Parametres_Drone::set_poussee_exponentielle(void)
 {
-    aller_a_la_ligne_apres(3);
+    aller_a_la_ligne_apres(3); // ligne 71
     fichier >> texte;
     if ( (texte.compare("true") == 0 || texte.compare("vrai") == 0 ) )
     {
@@ -293,7 +293,7 @@ void Parametres_Drone::set_poussee_exponentielle(void)
 
 void Parametres_Drone::set_affichage_parametres(void)
 {
-    aller_a_la_ligne_apres(7);
+    aller_a_la_ligne_apres(7); // ligne 78
     fichier >> texte;
     if ( (texte.compare("true") == 0 || texte.compare("vrai") == 0 ) )
     {
@@ -307,7 +307,7 @@ void Parametres_Drone::set_affichage_parametres(void)
 
 void Parametres_Drone::set_affichage_consignes(void)
 {
-    aller_a_la_ligne_apres(3);
+    aller_a_la_ligne_apres(3); // ligne 81
     fichier >> texte;
     if ( (texte.compare("true") == 0 || texte.compare("vrai") == 0 ) )
     {
@@ -321,7 +321,7 @@ void Parametres_Drone::set_affichage_consignes(void)
 
 void Parametres_Drone::set_affichage_erreur(void)
 {
-    aller_a_la_ligne_apres(3);
+    aller_a_la_ligne_apres(3); // ligne 84
     fichier >> texte;
     if ( (texte.compare("true") == 0 || texte.compare("vrai") == 0 ) )
     {
@@ -335,7 +335,7 @@ void Parametres_Drone::set_affichage_erreur(void)
 
 void Parametres_Drone::set_affichage_AHRS(void)
 {
-    aller_a_la_ligne_apres(3);
+    aller_a_la_ligne_apres(3); // ligne 87
     fichier >> texte;
     if ( (texte.compare("true") == 0 || texte.compare("vrai") == 0 ) )
     {
@@ -349,7 +349,7 @@ void Parametres_Drone::set_affichage_AHRS(void)
 
 void Parametres_Drone::set_affichage_pwm(void)
 {
-    aller_a_la_ligne_apres(3);
+    aller_a_la_ligne_apres(3); // ligne 90
     fichier >> texte;
     if ( (texte.compare("true") == 0 || texte.compare("vrai") == 0 ) )
     {
@@ -363,7 +363,7 @@ void Parametres_Drone::set_affichage_pwm(void)
 
 void Parametres_Drone::set_affichage_sorties_PID(void)
 {
-    aller_a_la_ligne_apres(3);
+    aller_a_la_ligne_apres(3); // ligne 93
     fichier >> texte;
     if ( (texte.compare("true") == 0 || texte.compare("vrai") == 0 ) )
     {
@@ -377,7 +377,7 @@ void Parametres_Drone::set_affichage_sorties_PID(void)
 
 void Parametres_Drone::set_affichage_commandes(void)
 {
-    aller_a_la_ligne_apres(3);
+    aller_a_la_ligne_apres(3); // ligne 96
     fichier >> texte;
     if ( (texte.compare("true") == 0 || texte.compare("vrai") == 0 ) )
     {
@@ -391,7 +391,7 @@ void Parametres_Drone::set_affichage_commandes(void)
 
 void Parametres_Drone::set_test_poussee(void)
 {
-    aller_a_la_ligne_apres(5);
+    aller_a_la_ligne_apres(5); // ligne 101
     fichier >> texte;
     if ( (texte.compare("true") == 0 || texte.compare("vrai") == 0 ) )
     {
