@@ -49,18 +49,7 @@ class Correcteur_1er_Ordre_Discret
 // -----------------------------------------------------------------------
 public:
     // Constructeur de la classe prenant en paramètre les coefficients de l'équation récurrente
-    Correcteur_1er_Ordre_Discret(double m_cxn=0,double m_cxn_1=0,double m_cyn_1=0)
-    {
-        cxn=m_cxn;
-        cxn_1=m_cxn_1;
-        cyn_1=m_cyn_1;
-
-        xn=0;
-        xn_1=0;
-        yn=0;
-        yn_1=0;
-
-    }
+    Correcteur_1er_Ordre_Discret(double m_cxn=0,double m_cxn_1=0,double m_cyn_1=0);
 
 // -----------------------------------------------------------------------
 // Méthodes publiques
@@ -101,22 +90,7 @@ class Correcteur_2nd_Ordre_Discret
 // -----------------------------------------------------------------------
 public:
     // Constructeur de la classe prenant en paramètre les coefficients de l'équation récurrente
-    Correcteur_2nd_Ordre_Discret(double m_cxn=0,double m_cxn_1=0,double m_cxn_2=0,double m_cyn_1=0,double m_cyn_2=0)
-    {
-        cxn=m_cxn;
-        cxn_1=m_cxn_1;
-        cxn_2=m_cxn_2;
-        cyn_1=m_cyn_1;
-        cyn_2=m_cyn_2;
-
-        xn=0;
-        xn_1=0;
-        xn_2=0;
-        yn=0;
-        yn_1=0;
-        yn_2=0;
-
-    }
+    Correcteur_2nd_Ordre_Discret(double m_cxn=0,double m_cxn_1=0,double m_cxn_2=0,double m_cyn_1=0,double m_cyn_2=0);
 
 // -----------------------------------------------------------------------
 // Méthodes publiques

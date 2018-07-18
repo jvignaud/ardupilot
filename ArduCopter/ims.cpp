@@ -15,7 +15,7 @@
 // Pour les fonctions d'écriture/lecture de fichiers
 #include <fstream>
 #include <iostream>
-#include <string.h>
+#include <cstring>
 #include <limits>
 
 #include "Copter.h"
@@ -26,6 +26,20 @@
  * Fonctions de la classe représentant une equation récurrente du premier ordre
  * 
  */
+
+// Constructeur de la classe prenant en paramètre les coefficients de l'équation récurrente
+Correcteur_1er_Ordre_Discret::Correcteur_1er_Ordre_Discret(double m_cxn,double m_cxn_1,double m_cyn_1)
+{
+    cxn=m_cxn;
+    cxn_1=m_cxn_1;
+    cyn_1=m_cyn_1;
+
+    xn=0;
+    xn_1=0;
+    yn=0;
+    yn_1=0;
+
+}
 
 // Récupération de la valeur de sortie de l'équation récurrente y(n) du 1er ordre
 double Correcteur_1er_Ordre_Discret::getyn() const
@@ -60,6 +74,24 @@ void Correcteur_1er_Ordre_Discret::cycle(double new_xn)
  * Fonctions de la classe représentant une equation récurrente du second ordre
  * 
  */
+
+// Constructeur de la classe prenant en paramètre les coefficients de l'équation récurrente
+Correcteur_2nd_Ordre_Discret::Correcteur_2nd_Ordre_Discret(double m_cxn,double m_cxn_1,double m_cxn_2,double m_cyn_1,double m_cyn_2)
+{
+    cxn=m_cxn;
+    cxn_1=m_cxn_1;
+    cxn_2=m_cxn_2;
+    cyn_1=m_cyn_1;
+    cyn_2=m_cyn_2;
+
+    xn=0;
+    xn_1=0;
+    xn_2=0;
+    yn=0;
+    yn_1=0;
+    yn_2=0;
+
+}
 
 // Récupération de la valeur de sortie de l'équation récurrente y(n) du 2nd ordre
 double Correcteur_2nd_Ordre_Discret::getyn() const
