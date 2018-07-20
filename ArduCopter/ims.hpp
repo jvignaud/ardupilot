@@ -12,10 +12,9 @@
 
 // Pour les fonctions d'écriture/lecture de fichiers
 #include <fstream>
-#include <iostream>
-#include <time.h>
+#include <cstring>
 
-#define LOG_TIME 600
+
 
 // -----------------------------------------------------------------------
 // Déclaration des structures

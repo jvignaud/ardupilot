@@ -10,7 +10,7 @@
  * Fichier qui regroupe toutes les définitions des méthodes des classes
  */
 
-#include "ims.h"
+
 
 // Pour les fonctions d'écriture/lecture de fichiers
 #include <fstream>
@@ -19,6 +19,7 @@
 #include <limits>
 
 #include "Copter.h"
+#include "ims.hpp"
 
 /*
  *
@@ -962,21 +963,21 @@ void Quadri::debugger(void)
     // Affichage des consignes Roll, Pitch, Yaw, Throttle
     if (params.get_affichage_consignes())
     {
-        hal.console->printf("Consignes - Roll: %f Pitch: %f Yaw: %f Throttle %f\n",target_roll_smooth*180/M_PI,target_pitch_smooth*180/M_PI,target_yaw_rate_smooth*180/M_PI, target_throttle_newton);
+        hal.console->printf("Consignes - Roll: %f Pitch: %f Yaw: %f Throttle %f\n",target_roll_smooth*180.0/M_PI,target_pitch_smooth*180.0/M_PI,target_yaw_rate_smooth*180.0/M_PI, target_throttle_newton);
     }
 
     // Affichage de l'erreur, des consignes et des sortie de l'AHRS
     if (params.get_affichage_erreur())
     {
-        hal.console->printf("Erreur Roll : %f° = Consigne.Roll - AHRS.Roll = %f° - %f° \n",(target_roll_smooth - angle_roulis)*180/M_PI, target_roll_smooth*180/M_PI, angle_roulis*180/M_PI);
-        hal.console->printf("Erreur Pitch : %f° = Consigne.Pitch - AHRS.Pitch = %f° - %f° \n",(target_pitch_smooth - angle_tangage)*180/M_PI, target_pitch_smooth*180/M_PI, angle_tangage*180/M_PI);
-        hal.console->printf("Erreur Yaw : %f°/s = Consigne.Yaw - AHRS.Yaw = %f° - %f° \n",(target_yaw_rate_smooth - vitesse_angle_lacet)*180/M_PI, target_yaw_rate_smooth*180/M_PI, vitesse_angle_lacet*180/M_PI);
+        hal.console->printf("Erreur Roll : %f° = Consigne.Roll - AHRS.Roll = %f° - %f° \n",(target_roll_smooth - angle_roulis)*180.0/M_PI, target_roll_smooth*180.0/M_PI, angle_roulis*180.0/M_PI);
+        hal.console->printf("Erreur Pitch : %f° = Consigne.Pitch - AHRS.Pitch = %f° - %f° \n",(target_pitch_smooth - angle_tangage)*180.0/M_PI, target_pitch_smooth*180.0/M_PI, angle_tangage*180.0/M_PI);
+        hal.console->printf("Erreur Yaw : %f°/s = Consigne.Yaw - AHRS.Yaw = %f° - %f° \n",(target_yaw_rate_smooth - vitesse_angle_lacet)*180.0/M_PI, target_yaw_rate_smooth*180.0/M_PI, vitesse_angle_lacet*180.0/M_PI);
     }
     
     // Affichage des sorties de l'AHRS
     if (params.get_affichage_AHRS())
     {
-        hal.console->printf("AHRS - Roll: %f°, Pitch:%f°, R:%f°/s\n",angle_roulis*180/M_PI, angle_tangage*180/M_PI, vitesse_angle_lacet*180/M_PI);
+        hal.console->printf("AHRS - Roll: %f°, Pitch:%f°, R:%f°/s\n",angle_roulis*180/M_PI, angle_tangage*180/M_PI, vitesse_angle_lacet*180.0/M_PI);
     }
     
 

@@ -11,11 +11,10 @@
  * Utilisation de la classe Quadri afin de simplifier la lecture du code et d'optimiser les calculs
  */
 
-#include "Copter.h"
-#include "ims.h"
-#include <time.h>
 
-#define LOG_TIME 600
+#include "Copter.h"
+#include "ims.hpp"
+
 
 
 // --------------------------------------------------------------------
