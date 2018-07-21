@@ -10,14 +10,6 @@
  * Fichier qui regroupe toutes les définitions des méthodes des classes
  */
 
-
-
-// Pour les fonctions d'écriture/lecture de fichiers
-#include <fstream>
-#include <iostream>
-#include <cstring>
-#include <limits>
-
 #include "Copter.h"
 #include "ims.hpp"
 
@@ -134,7 +126,7 @@ void Correcteur_2nd_Ordre_Discret::cycle(double new_xn)
  */
 
 // Constructeur de la classe Parametres_Drone en prenant pour argument le nom et l'emplacement du fichier contenant les paramètres du drone
-Parametres_Drone::Parametres_Drone(std::string nom_fichier)
+Parametres_Drone::Parametres_Drone(std::string const& nom_fichier)
 {
     // On ouvre le fichier en lecture 
     fichier.open(nom_fichier.c_str());  
@@ -560,7 +552,7 @@ bool Parametres_Drone::get_test_poussee(void) const
  */
 
 // Constructeur de la classe Quadri prenant en paramètre le nom et l'emplacement du fichier (généré par un script MatLab) qui contient les paramètres
-Quadri::Quadri(std::string emplacement_fichier_parametres) : 
+Quadri::Quadri(std::string const& emplacement_fichier_parametres) : 
 // initialisation des classes
 params(emplacement_fichier_parametres),
 pid_roll(params.get_roulis().xn,params.get_roulis().xn_1,params.get_roulis().xn_2,params.get_roulis().yn_1,params.get_roulis().yn_2),

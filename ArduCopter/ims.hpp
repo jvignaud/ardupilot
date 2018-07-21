@@ -12,7 +12,6 @@
 
 // Pour les fonctions d'écriture/lecture de fichiers
 #include <fstream>
-#include <cstring>
 
 
 
@@ -131,7 +130,7 @@ class Parametres_Drone
 // -----------------------------------------------------------------------
 public:
     // Constructeur de la classe prenant en param�tre le nom du fichier contenant les paramètres
-    Parametres_Drone(std::string nom_fichier);
+    Parametres_Drone(std::string const& nom_fichier);
 
 // -----------------------------------------------------------------------
 // Méthodes publiques
@@ -255,7 +254,7 @@ class Quadri
 // Constructeur de la classe
 // -----------------------------------------------------------------------
 public:
-    Quadri(std::string emplacement_fichier_parametres);
+    Quadri(std::string const& emplacement_fichier_parametres);
 
 
 // -----------------------------------------------------------------------
