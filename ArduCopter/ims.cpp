@@ -693,34 +693,52 @@ void Quadri::test_pwm(void)
 
 void Quadri::set_u_phi(void)
 {
+    // Convertion de la consigne envoyée par la manette (en centidegré) en radian 
     target_roll_rad=double((target_roll*M_PI)/18000.0);
+
+    // Passage de la consigne dans la fonction "Smooth" qui ralenti la consigne si l'amplitude est trop élevée
     roll_smooth.cycle(target_roll_rad);
     target_roll_smooth = roll_smooth.getyn();
+
+    // Passage dans le correcteur PID, ayant pour entrée l'erreur (= la différence en la consigne et la valeur des capteurs)
     pid_roll.cycle(target_roll_smooth-angle_roulis);
     u_phi=pid_roll.getyn();
 }
 
 void Quadri::set_u_theta(void)
 {
+    // Convertion de la consigne envoyée par la manette (en centidegré) en radian 
     target_pitch_rad=double((target_pitch*M_PI)/18000.0);
+
+    // Passage de la consigne dans la fonction "Smooth" qui ralenti la consigne si l'amplitude est trop élevée
     pitch_smooth.cycle(target_pitch_rad);
     target_pitch_smooth = pitch_smooth.getyn();
+
+    // Passage dans le correcteur PID, ayant pour entrée l'erreur (= la différence en la consigne et la valeur des capteurs)
     pid_pitch.cycle(target_pitch_smooth-angle_tangage);
     u_theta=pid_pitch.getyn();
 }
 
 void Quadri::set_u_r(void)
 {
+    // Convertion de la consigne envoyée par la manette (en centidegré par seconde) en radian par seconde
     target_yaw_rate_rad=double((target_yaw_rate*M_PI)/18000.0);
+
+    // Passage de la consigne dans la fonction "Smooth" qui ralenti la consigne si l'amplitude est trop élevée
     yaw_rate_smooth.cycle(target_yaw_rate_rad);
     target_yaw_rate_smooth = yaw_rate_smooth.getyn();
+
+    // Passage dans le correcteur PI, ayant pour entrée l'erreur (= la différence en la consigne et la valeur des capteurs)
     pi_yaw.cycle(target_yaw_rate_smooth-vitesse_angle_lacet);
     u_r=pi_yaw.getyn();
 }
 
 void Quadri::set_u_z(void)
 {
+    // Convertion de la consigne envoyée par la manette (comprise entre 0 et 1) en Newton
     target_throttle_newton=double(pilot_throttle_scaled*params.get_masse_arrachage()*GRAVITY_MSS);
+
+    // On caclule la poussée nécessaire dépendant de l'angle de roulis et de tangage
     u_z=-target_throttle_newton/(cosf(angle_roulis)*cosf(angle_tangage));
 }
 
@@ -844,7 +862,7 @@ void Quadri::set_w4_pwm(void)
 
 void Quadri::set_pwm_moteurs(void)
 {
-    // Récupération des commandes
+    // Récupération des sorties des correcteurs
     set_u_phi();
     set_u_theta();
     set_u_r();
@@ -969,7 +987,7 @@ void Quadri::debugger(void)
     // Affichage des sorties de l'AHRS
     if (params.get_affichage_AHRS())
     {
-        hal.console->printf("AHRS - Roll: %f°, Pitch:%f°, R:%f°/s\n",angle_roulis*180/M_PI, angle_tangage*180/M_PI, vitesse_angle_lacet*180.0/M_PI);
+        hal.console->printf("AHRS - Roll: %f°, Pitch:%f°, R:%f°/s\n",angle_roulis*180.0/M_PI, angle_tangage*180.0/M_PI, vitesse_angle_lacet*180.0/M_PI);
     }
     
 
@@ -995,7 +1013,7 @@ void Quadri::debugger(void)
     // Affichage des éléments importants pour le test de poussée
     if (params.get_test_poussee())
     {
-        hal.console->printf("Test poussée : Consigne poussée en pourcent : %f, PWM min : %d, PWM max : %d et PWM : %d\n", pilot_throttle_scaled*100,pwm_max,pwm_min,w1_pwm);
+        hal.console->printf("Test poussée : Consigne poussée en pourcent : %f, PWM min : %d, PWM max : %d et PWM : %d\n", pilot_throttle_scaled*100.0,pwm_max,pwm_min,w1_pwm);
 
     }
 }
