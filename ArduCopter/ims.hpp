@@ -343,16 +343,16 @@ private:
 
     // CORRECTEURS (wu = 25 rad/s) :
 
-    // PID ROLL : y(n)=54.4335.x(n)+-107.3269.x(n-1)+52.9008.x(n-2)+1.839.y(n-1)+-0.83901.y(n-2)
+    // PID ROLL : yn = 57.108973.x(n) - 112.602070.x(n-1) + 55.500948.x(n-2) + 1.839006.y(n-1) - 0.839006.y(n-2)
     Correcteur_2nd_Ordre_Discret pid_roll;
 
-    // PID PITCH : y(n)=60.6081.x(n)+-119.5013.x(n-1)+58.9015.x(n-2)+1.839.y(n-1)+-0.83901.y(n-2)
+    // PID PITCH : yn = 41.048072.x(n) - 80.934704.x(n-1) + 39.892275.x(n-2) + 1.839006.y(n-1) - 0.839006.y(n-2)
     Correcteur_2nd_Ordre_Discret pid_pitch;
 
-    // PI R : y(n)=1.0955.x(n)+-1.0886.x(n-1)+1.y(n-1)
+    // PI R : yn = 0.834204.x(n) - 0.829007.x(n-1) + 1.000000.y(n-1)
     Correcteur_1er_Ordre_Discret pi_yaw;
 
-    // Fonction smooth consigne
+    // Fonction smooth consigne : yn = 0.000152.x(n) + 0.000305.x(n-1) + 0.000152.x(n-2) + 1.950617.y(n-1) - 0.951227.y(n-2)
     Correcteur_2nd_Ordre_Discret roll_smooth,pitch_smooth,yaw_rate_smooth;
 
 
@@ -369,7 +369,7 @@ private:
     // nom du mode de vol qui apparaitra dans le fichier log
     std::string nom_programme;
 
-    // Sortie des PIDs
+    // Sortie des correcteurs
     double u_theta, u_phi, u_r, u_z;
 
     // Commandes (moteurs en rad/s)

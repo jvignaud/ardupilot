@@ -565,7 +565,6 @@ yaw_rate_smooth(roll_smooth)
     //initialisations des attributs
     nom_programme = params.get_fichier_log();
     fichier_log_ouvert=false;
-    titre_log();
     u_theta = 0;
     u_phi = 0;
     u_r = 0;
@@ -598,31 +597,31 @@ yaw_rate_smooth(roll_smooth)
     debug = params.get_affichage_AHRS() || params.get_affichage_commandes() || params.get_affichage_consignes() || params.get_affichage_erreur() || params.get_affichage_parametres() || params.get_affichage_pwm() || params.get_affichage_sorties_PID() || params.get_test_poussee();
 }
 
-// Fonction qui donne un titre au fichier log
+// Fonction qui crée et donne un titre au fichier log
 void Quadri::titre_log(void)
 {
     // Construction de la date et de l'heure pour rendre le nom du fichier de log unique
-            time_t rawtime;
-            struct tm * timeinfo;
-            char buffer [30];
-            char log_file_name [80];
+        time_t rawtime;
+        struct tm * timeinfo;
+        char buffer [30];
+        char log_file_name [80];
 
-            time (&rawtime);
-            timeinfo = localtime (&rawtime);
+        time (&rawtime);
+        timeinfo = localtime (&rawtime);
 
-            strftime (buffer,30,"%F--%H-%M-%S",timeinfo);
-            //création du fichier à l'emplacement '/home/pi/ardupilot/build/navio2/bin/' sur le drone
-            //avec pour nom : "<nom_programme>_CSV_LOG-<année>-<mois>-<jour>--<heure>-<minute>-<seconde>.dat"
-            strcpy(log_file_name,"/home/pi/ardupilot/build/navio2/bin/");
-            strcat(log_file_name,nom_programme.c_str());
-            strcat(log_file_name,"_CSV_LOG-");
-            strcat(log_file_name,buffer);
-            strcat(log_file_name,".dat");
+        strftime (buffer,30,"%F--%H-%M-%S",timeinfo);
+        //création du fichier à l'emplacement '/home/pi/ardupilot/build/navio2/bin/' sur le drone
+        //avec pour nom : "<nom_programme>_CSV_LOG-<année>-<mois>-<jour>--<heure>-<minute>-<seconde>.dat"
+        strcpy(log_file_name,"/home/pi/ardupilot/build/navio2/bin/");
+        strcat(log_file_name,nom_programme.c_str());
+        strcat(log_file_name,"_CSV_LOG-");
+        strcat(log_file_name,buffer);
+        strcat(log_file_name,".dat");
 
-            fichier_log.open(log_file_name); // Création d'un fichier de log unique
+        fichier_log.open(log_file_name); // Création d'un fichier de log unique
 
-            // Ecriture d'une entête pour savoir à quoi correspond les données
-            fichier_log << "AHRS.Roll,AHRS.Pitch,AHRS.R,RC.Roll,RC.Pitch,RC.R,RC.Thrust,Uphi,Utheta,Ur,Uz,w1,w2,w3,w4,w1_pwm,w2_pwm,w3_pwm,w4_pwm" << std::endl;
+        // Ecriture d'une entête pour savoir à quoi correspond les données
+        fichier_log << "AHRS_Roll,AHRS_Pitch,AHRS_R,RC_Roll,RC_Pitch,RC_R,RC_Thrust,Uphi,Utheta,Ur,Uz,w1,w2,w3,w4,w1_pwm,w2_pwm,w3_pwm,w4_pwm" << std::endl;
 }
 
 // Fonction qui permet d'écrire les paramètres dans le fichier log
@@ -892,7 +891,7 @@ void Quadri::set_pwm_moteurs(void)
 void Quadri::ouverture_fichier_log(void)
 {
     if (fichier_log_ouvert==false) { // Si le fichier de log n'est pas encore ouvert alors l'ouvrir
-        // Fonction qui donne un titre au fichier
+        // Fonction qui crée et donne un titre au fichier log
         titre_log();
         fichier_log_ouvert=true;
     }
