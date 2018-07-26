@@ -4,8 +4,8 @@ if [ $# -gt 2 ];then #si il y a plus de quatre arguments
 	echo "usage : ./compilation.sh ou ./compilation.sh upload ou ./compilation.sh upload file ou encore ./compilation.sh upload file <fichier_parametre.conf>"
 
 else
-	chmod +x .check_fichier.sh 
-	./.check_fichier.sh
+	chmod +x .check_fichiers.sh 
+	./.check_fichiers.sh
 	
 
 	if [ $# -eq 2 ];then #si il y a deux arguments

@@ -1,3 +1,5 @@
+#!/bin/bash
+
 if [ -d /opt/tools/arm-bcm2708 ]; then	#si le repertoire arm-linux-gnueabihf n existe pas
 
 	if [ -d /usr/share/doc/python-pip ]; then  #si le repertoire python-pip exite
