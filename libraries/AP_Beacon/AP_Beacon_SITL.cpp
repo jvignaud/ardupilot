@@ -41,9 +41,9 @@ extern const AP_HAL::HAL& hal;
 
 // constructor
 AP_Beacon_SITL::AP_Beacon_SITL(AP_Beacon &frontend) :
-    AP_Beacon_Backend(frontend)
+    AP_Beacon_Backend(frontend),
+    sitl(AP::sitl())
 {
-    sitl = (SITL::SITL *)AP_Param::find_object("SIM_");
 }
 
 // return true if sensor is basically healthy (we are receiving data)
@@ -85,7 +85,7 @@ void AP_Beacon_SITL::update(void)
         break;
     case 1:
         // SE corner
-        location_offset(beacon_loc, ORIGIN_OFFSET_NORTH - BEACON_SPACING_NORTH/2, ORIGIN_OFFSET_EAST + BEACON_SPACING_EAST);
+        location_offset(beacon_loc, ORIGIN_OFFSET_NORTH - BEACON_SPACING_NORTH/2, ORIGIN_OFFSET_EAST + BEACON_SPACING_EAST/2);
         break;
     case 2:
         // SW corner

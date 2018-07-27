@@ -68,9 +68,23 @@ const AP_Param::Info *AP_Param::_var_info;
 struct AP_Param::param_override *AP_Param::param_overrides = nullptr;
 uint16_t AP_Param::num_param_overrides = 0;
 
+/*
+  this holds default parameters in the normal NAME=value form for a
+  parameter file. It can be manipulated by apj_tool.py to change the
+  defaults on a binary without recompiling
+ */
+const AP_Param::param_defaults_struct AP_Param::param_defaults_data = {
+    "PARMDEF",
+    { 0x55, 0x37, 0xf4, 0xa0, 0x38, 0x5d, 0x48, 0x5b },
+    AP_PARAM_MAX_EMBEDDED_PARAM,
+    0
+};
+
 // storage object
 StorageAccess AP_Param::_storage(StorageManager::StorageParam);
 
+// flags indicating frame type
+uint16_t AP_Param::_frame_type_flags;
 
 // write to EEPROM
 void AP_Param::eeprom_write_check(const void *ptr, uint16_t ofs, uint8_t size)
@@ -127,7 +141,22 @@ uint32_t AP_Param::group_id(const struct GroupInfo *grpinfo, uint32_t base, uint
     }
     return base + (grpinfo[i].idx<<shift);
 }
- 
+
+
+/*
+  check if a frame type should be included. A frame is included if
+  either there are no frame type flags on a parameter or if at least
+  one of the flags has been set by set_frame_type_flags()
+ */
+bool AP_Param::check_frame_type(uint16_t flags)
+{
+    uint16_t frame_flags = flags >> AP_PARAM_FRAME_TYPE_SHIFT;
+    if (frame_flags == 0) {
+        return true;
+    }
+    return (frame_flags & _frame_type_flags) != 0;
+}
+
 // validate a group info table
 bool AP_Param::check_group_info(const struct AP_Param::GroupInfo *  group_info,
                                 uint16_t *                          total_size,
@@ -148,24 +177,26 @@ bool AP_Param::check_group_info(const struct AP_Param::GroupInfo *  group_info,
             // great idx 0 as 63 for duplicates. See group_id()
             idx = 63;
         }
-        if (type == AP_PARAM_GROUP) {
-            // a nested group
-            const struct GroupInfo *ginfo = group_info[i].group_info;
-            if (group_shift + _group_level_shift >= _group_bits) {
-                Debug("double group nesting in %s", group_info[i].name);
-                return false;
-            }
-            if (ginfo == nullptr ||
-                !check_group_info(ginfo, total_size, group_shift + _group_level_shift, prefix_length + strlen(group_info[i].name))) {
-                return false;
-            }
-            continue;
-        }
         if (used_mask & (1ULL<<idx)) {
             Debug("Duplicate group idx %u for %s", idx, group_info[i].name);
             return false;
         }
         used_mask |= (1ULL<<idx);
+        if (type == AP_PARAM_GROUP) {
+            // a nested group
+            if (group_shift + _group_level_shift >= _group_bits) {
+                Debug("double group nesting in %s", group_info[i].name);
+                return false;
+            }
+            const struct GroupInfo *ginfo = get_group_info(group_info[i]);
+            if (ginfo == nullptr) {
+                continue;
+            }
+            if (!check_group_info(ginfo, total_size, group_shift + _group_level_shift, prefix_length + strlen(group_info[i].name))) {
+                return false;
+            }
+            continue;
+        }
         uint8_t size = type_size((enum ap_var_type)type);
         if (size == 0) {
             Debug("invalid type in %s", group_info[i].name);
@@ -193,6 +224,28 @@ bool AP_Param::duplicate_key(uint16_t vindex, uint16_t key)
     return false;
 }
 
+/*
+  get group_info pointer for a group
+ */
+const struct AP_Param::GroupInfo *AP_Param::get_group_info(const struct GroupInfo &ginfo)
+{
+    if (ginfo.flags & AP_PARAM_FLAG_INFO_POINTER) {
+        return *ginfo.group_info_ptr;
+    }
+    return ginfo.group_info;
+}
+
+/*
+  get group_info pointer for a group
+ */
+const struct AP_Param::GroupInfo *AP_Param::get_group_info(const struct Info &info)
+{
+    if (info.flags & AP_PARAM_FLAG_INFO_POINTER) {
+        return *info.group_info_ptr;
+    }
+    return info.group_info;
+}
+
 // validate the _var_info[] table
 bool AP_Param::check_var_info(void)
 {
@@ -206,9 +259,11 @@ bool AP_Param::check_var_info(void)
                 // first element can't be a group, for first() call
                 return false;
             }
-            const struct GroupInfo *group_info = _var_info[i].group_info;
-            if (group_info == nullptr ||
-                !check_group_info(group_info, &total_size, 0, strlen(_var_info[i].name))) {
+            const struct GroupInfo *group_info = get_group_info(_var_info[i]);
+            if (group_info == nullptr) {
+                continue;
+            }
+            if (!check_group_info(group_info, &total_size, 0, strlen(_var_info[i].name))) {
                 return false;
             }
         } else {
@@ -326,7 +381,10 @@ const struct AP_Param::Info *AP_Param::find_by_header_group(struct Param_header 
                 // setup() !
                 return nullptr;
             }
-            const struct GroupInfo *ginfo = group_info[i].group_info;
+            const struct GroupInfo *ginfo = get_group_info(group_info[i]);
+            if (ginfo == nullptr) {
+                continue;
+            }
             ptrdiff_t new_offset = group_offset;
 
             if (!adjust_group_offset(vindex, group_info[i], new_offset)) {
@@ -367,7 +425,10 @@ const struct AP_Param::Info *AP_Param::find_by_header(struct Param_header phdr, 
             continue;
         }
         if (type == AP_PARAM_GROUP) {
-            const struct GroupInfo *group_info = _var_info[i].group_info;
+            const struct GroupInfo *group_info = get_group_info(_var_info[i]);
+            if (group_info == nullptr) {
+                continue;
+            }
             return find_by_header_group(phdr, ptr, i, group_info, 0, 0, 0);
         }
         if (type == phdr.type) {
@@ -404,7 +465,10 @@ const struct AP_Param::Info *AP_Param::find_var_info_group(const struct GroupInf
          i++) {
         ptrdiff_t ofs = group_info[i].offset + group_offset;
         if (type == AP_PARAM_GROUP) {
-            const struct GroupInfo *ginfo = group_info[i].group_info;
+            const struct GroupInfo *ginfo = get_group_info(group_info[i]);
+            if (ginfo == nullptr) {
+                continue;
+            }
             // a nested group
             if (group_shift + _group_level_shift >= _group_bits) {
                 // too deeply nested - this should have been caught by
@@ -466,7 +530,10 @@ const struct AP_Param::Info *AP_Param::find_var_info(uint32_t *                 
             continue;
         }
         if (type == AP_PARAM_GROUP) {
-            const struct GroupInfo *group_info = _var_info[i].group_info;
+            const struct GroupInfo *group_info = get_group_info(_var_info[i]);
+            if (group_info == nullptr) {
+                continue;
+            }
             const struct AP_Param::Info *info;
             info = find_var_info_group(group_info, i, 0, 0, 0, group_element, group_ret, group_nesting, idx);
             if (info != nullptr) {
@@ -506,7 +573,10 @@ const struct AP_Param::Info *AP_Param::find_var_info_token(const ParamToken &tok
     group_ret = nullptr;
     
     if (type == AP_PARAM_GROUP) {
-        const struct GroupInfo *group_info = _var_info[i].group_info;
+        const struct GroupInfo *group_info = get_group_info(_var_info[i]);
+        if (group_info == nullptr) {
+            return nullptr;
+        }
         const struct AP_Param::Info *info;
         info = find_var_info_group(group_info, i, 0, 0, 0, group_element, group_ret, group_nesting, idx);
         if (info != nullptr) {
@@ -577,6 +647,13 @@ bool AP_Param::is_sentinal(const Param_header &phdr)
     if (phdr.type == _sentinal_type ||
         get_key(phdr) == _sentinal_key ||
         phdr.group_element == _sentinal_group) {
+        return true;
+    }
+    // also check for 0xFFFFFFFF and 0x00000000, which are the fill
+    // values for storage. These can appear if power off occurs while
+    // writing data
+    uint32_t v = *(uint32_t *)&phdr;
+    if (v == 0 || v == 0xFFFFFFFF) {
         return true;
     }
     return false;
@@ -688,7 +765,10 @@ AP_Param::find_group(const char *name, uint16_t vindex, ptrdiff_t group_offset,
             if (strncasecmp(name, group_info[i].name, strlen(group_info[i].name)) != 0) {
                 continue;
             }
-            const struct GroupInfo *ginfo = group_info[i].group_info;
+            const struct GroupInfo *ginfo = get_group_info(group_info[i]);
+            if (ginfo == nullptr) {
+                continue;
+            }
             ptrdiff_t new_offset = group_offset;
 
             if (!adjust_group_offset(vindex, group_info[i], new_offset)) {
@@ -747,7 +827,10 @@ AP_Param::find(const char *name, enum ap_var_type *ptype)
             if (strncmp(name, _var_info[i].name, len) != 0) {
                 continue;
             }
-            const struct GroupInfo *group_info = _var_info[i].group_info;
+            const struct GroupInfo *group_info = get_group_info(_var_info[i]);
+            if (group_info == nullptr) {
+                continue;
+            }
             AP_Param *ap = find_group(name + len, i, 0, group_info, ptype);
             if (ap != nullptr) {
                 return ap;
@@ -765,31 +848,6 @@ AP_Param::find(const char *name, enum ap_var_type *ptype)
         }
     }
     return nullptr;
-}
-
-/*
-  find the def_value for a variable by name
-*/
-const float *
-AP_Param::find_def_value_ptr(const char *name)
-{
-    enum ap_var_type ptype;
-    AP_Param *vp = find(name, &ptype);
-    if (vp == nullptr) {
-        return nullptr;
-    }
-    uint32_t group_element;
-    const struct GroupInfo *ginfo;
-    struct GroupNesting group_nesting {};
-    uint8_t gidx;
-    const struct AP_Param::Info *info = vp->find_var_info(&group_element, ginfo, group_nesting, &gidx);
-    if (info == nullptr) {
-        return nullptr;
-    }
-    if (ginfo != nullptr) {
-        return &ginfo->def_value;
-    }
-    return &info->def_value;
 }
 
 // Find a variable by index. Note that this is quite slow.
@@ -836,7 +894,11 @@ bool AP_Param::find_key_by_pointer_group(const void *ptr, uint16_t vindex,
         if (!adjust_group_offset(vindex, group_info[i], new_offset)) {
             continue;
         }
-        if (find_key_by_pointer_group(ptr, vindex, group_info[i].group_info, new_offset, key)) {
+        const struct GroupInfo *ginfo = get_group_info(group_info[i]);
+        if (ginfo == nullptr) {
+            continue;
+        }
+        if (find_key_by_pointer_group(ptr, vindex, ginfo, new_offset, key)) {
             return true;
         }
     }
@@ -859,7 +921,11 @@ bool AP_Param::find_key_by_pointer(const void *ptr, uint16_t &key)
             return true;
         }
         ptrdiff_t offset = 0;
-        if (find_key_by_pointer_group(ptr, i, _var_info[i].group_info, offset, key)) {
+        const struct GroupInfo *ginfo = get_group_info(_var_info[i]);
+        if (ginfo == nullptr) {
+            continue;
+        }
+        if (find_key_by_pointer_group(ptr, i, ginfo, offset, key)) {
             return true;
         }
     }
@@ -972,12 +1038,12 @@ bool AP_Param::save(bool force_save)
         float v1 = cast_to_float((enum ap_var_type)phdr.type);
         float v2;
         if (ginfo != nullptr) {
-            v2 = get_default_value(&ginfo->def_value);
+            v2 = get_default_value(this, &ginfo->def_value);
         } else {
-            v2 = get_default_value(&info->def_value);
+            v2 = get_default_value(this, &info->def_value);
         }
         if (is_equal(v1,v2) && !force_save) {
-            GCS_MAVLINK::send_parameter_value_all(name, (enum ap_var_type)info->type, v2);
+            gcs().send_parameter_value(name, (enum ap_var_type)info->type, v2);
             return true;
         }
         if (!force_save &&
@@ -985,14 +1051,14 @@ bool AP_Param::save(bool force_save)
              (fabsf(v1-v2) < 0.0001f*fabsf(v1)))) {
             // for other than 32 bit integers, we accept values within
             // 0.01 percent of the current value as being the same
-            GCS_MAVLINK::send_parameter_value_all(name, (enum ap_var_type)info->type, v2);
+            gcs().send_parameter_value(name, (enum ap_var_type)info->type, v2);
             return true;
         }
     }
 
     if (ofs+type_size((enum ap_var_type)phdr.type)+2*sizeof(phdr) >= _storage.size()) {
         // we are out of room for saving variables
-        hal.console->println("EEPROM full");
+        hal.console->printf("EEPROM full\n");
         return false;
     }
 
@@ -1046,10 +1112,10 @@ bool AP_Param::load(void)
                 group_offset += group_nesting.group_ret[i]->offset;
             }
             set_value((enum ap_var_type)phdr.type, (void*)(base + ginfo->offset + group_offset),
-                      get_default_value(&ginfo->def_value));
+                      get_default_value(this, &ginfo->def_value));
         } else {
             set_value((enum ap_var_type)phdr.type, (void*)base, 
-                      get_default_value(&info->def_value));
+                      get_default_value(this, &info->def_value));
         }
         return false;
     }
@@ -1112,16 +1178,8 @@ bool AP_Param::configured_in_defaults_file(void) const
         return false;
     }
 
-    const float* def_value_ptr;
-
-    if (ginfo != nullptr) {
-        def_value_ptr = &ginfo->def_value;
-    } else {
-        def_value_ptr = &info->def_value;
-    }
-
     for (uint16_t i=0; i<num_param_overrides; i++) {
-        if (def_value_ptr == param_overrides[i].def_value_ptr) {
+        if (this == param_overrides[i].object_ptr) {
             return true;
         }
     }
@@ -1162,7 +1220,8 @@ void AP_Param::setup_object_defaults(const void *object_pointer, const struct Gr
          i++) {
         if (type <= AP_PARAM_FLOAT) {
             void *ptr = (void *)(base + group_info[i].offset);
-            set_value((enum ap_var_type)type, ptr, get_default_value(&group_info[i].def_value));
+            set_value((enum ap_var_type)type, ptr,
+                      get_default_value((const AP_Param *)ptr, &group_info[i].def_value));
         }
     }
 }
@@ -1200,7 +1259,8 @@ void AP_Param::setup_sketch_defaults(void)
         if (type <= AP_PARAM_FLOAT) {
             ptrdiff_t base;
             if (get_base(_var_info[i], base)) {
-                set_value((enum ap_var_type)type, (void*)base, get_default_value(&_var_info[i].def_value));
+                set_value((enum ap_var_type)type, (void*)base,
+                          get_default_value((const AP_Param *)base, &_var_info[i].def_value));
             }
         }
     }
@@ -1209,12 +1269,12 @@ void AP_Param::setup_sketch_defaults(void)
 
 // Load all variables from EEPROM
 //
-bool AP_Param::load_all(bool check_defaults_file)
+bool AP_Param::load_all()
 {
     struct Param_header phdr;
     uint16_t ofs = sizeof(AP_Param::EEPROM_header);
 
-    reload_defaults_file(check_defaults_file);
+    reload_defaults_file(false);
 
     while (ofs < _storage.size()) {
         _storage.read_block(&phdr, ofs, sizeof(phdr));
@@ -1242,10 +1302,17 @@ bool AP_Param::load_all(bool check_defaults_file)
 }
 
 /*
-  reload from hal.util defaults file
+ * reload from hal.util defaults file or embedded param region
+ * @last_pass: if this is the last pass on defaults - unknown parameters are
+ *             ignored but if this is set a warning will be emitted
  */
-void AP_Param::reload_defaults_file(bool panic_on_error)
+void AP_Param::reload_defaults_file(bool last_pass)
 {
+    if (param_defaults_data.length != 0) {
+        load_embedded_param_defaults(last_pass);
+        return;
+    }
+
 #if HAL_OS_POSIX_IO == 1
     /*
       if the HAL specifies a defaults parameter file then override
@@ -1253,7 +1320,7 @@ void AP_Param::reload_defaults_file(bool panic_on_error)
      */
     const char *default_file = hal.util->get_custom_defaults_file();
     if (default_file) {
-        if (load_defaults_file(default_file, panic_on_error)) {
+        if (load_defaults_file(default_file, last_pass)) {
             printf("Loaded defaults from %s\n", default_file);
         } else {
             printf("Failed to load defaults from %s\n", default_file);
@@ -1272,6 +1339,9 @@ void AP_Param::load_object_from_eeprom(const void *object_pointer, const struct 
     struct Param_header phdr;
     uint16_t key;
 
+    // reset cached param counter as we may be loading a dynamic var_info
+    _parameter_count = 0;
+    
     if (!find_key_by_pointer(object_pointer, key)) {
         hal.console->printf("ERROR: Unable to find param pointer\n");
         return;
@@ -1283,8 +1353,10 @@ void AP_Param::load_object_from_eeprom(const void *object_pointer, const struct 
             if (!adjust_group_offset(key, group_info[i], new_offset)) {
                 continue;
             }
-            load_object_from_eeprom((void *)(((ptrdiff_t)object_pointer)+new_offset), group_info[i].group_info);
-            continue;
+            const struct GroupInfo *ginfo = get_group_info(group_info[i]);
+            if (ginfo != nullptr) {
+                load_object_from_eeprom((void *)(((ptrdiff_t)object_pointer)+new_offset), ginfo);
+            }
         }
         uint16_t ofs = sizeof(AP_Param::EEPROM_header);
         while (ofs < _storage.size()) {
@@ -1347,9 +1419,15 @@ AP_Param *AP_Param::next_group(uint16_t vindex, const struct GroupInfo *group_in
     for (uint8_t i=0;
          (type=(enum ap_var_type)group_info[i].type) != AP_PARAM_NONE;
          i++) {
+        if (!check_frame_type(group_info[i].flags)) {
+            continue;
+        }
         if (type == AP_PARAM_GROUP) {
             // a nested group
-            const struct GroupInfo *ginfo = group_info[i].group_info;
+            const struct GroupInfo *ginfo = get_group_info(group_info[i]);
+            if (ginfo == nullptr) {
+                continue;
+            }
             AP_Param *ap;
             ptrdiff_t new_offset = group_offset;
 
@@ -1427,9 +1505,15 @@ AP_Param *AP_Param::next(ParamToken *token, enum ap_var_type *ptype)
         found_current = true;
     }
     for (; i<_num_vars; i++) {
+        if (!check_frame_type(_var_info[i].flags)) {
+            continue;
+        }
         type = (enum ap_var_type)_var_info[i].type;
         if (type == AP_PARAM_GROUP) {
-            const struct GroupInfo *group_info = _var_info[i].group_info;
+            const struct GroupInfo *group_info = get_group_info(_var_info[i]);
+            if (group_info == nullptr) {
+                continue;
+            }
             AP_Param *ap = next_group(i, group_info, &found_current, 0, 0, 0, token, ptype);
             if (ap != nullptr) {
                 return ap;
@@ -1469,6 +1553,7 @@ AP_Param *AP_Param::next_scalar(ParamToken *token, enum ap_var_type *ptype)
                                                                     ginfo, group_nesting, &idx);
         if (info && ginfo &&
             (ginfo->flags & AP_PARAM_FLAG_ENABLE) &&
+            !(ginfo->flags & AP_PARAM_FLAG_IGNORE_ENABLE) &&
             ((AP_Int8 *)ap)->get() == 0 &&
             _hide_disabled_groups) {
             /*
@@ -1514,56 +1599,6 @@ float AP_Param::cast_to_float(enum ap_var_type type) const
         return ((AP_Float *)this)->cast_to_float();
     default:
         return NAN;
-    }
-}
-
-
-// print the value of all variables
-void AP_Param::show(const AP_Param *ap, const char *s,
-                    enum ap_var_type type, AP_HAL::BetterStream *port)
-{
-    switch (type) {
-    case AP_PARAM_INT8:
-        port->printf("%s: %d\n", s, (int)((AP_Int8 *)ap)->get());
-        break;
-    case AP_PARAM_INT16:
-        port->printf("%s: %d\n", s, (int)((AP_Int16 *)ap)->get());
-        break;
-    case AP_PARAM_INT32:
-        port->printf("%s: %ld\n", s, (long)((AP_Int32 *)ap)->get());
-        break;
-    case AP_PARAM_FLOAT:
-        port->printf("%s: %f\n", s, (double)((AP_Float *)ap)->get());
-        break;
-    default:
-        break;
-    }
-}
-
-// print the value of all variables
-void AP_Param::show(const AP_Param *ap, const ParamToken &token,
-                    enum ap_var_type type, AP_HAL::BetterStream *port)
-{
-    char s[AP_MAX_NAME_SIZE+1];
-    ap->copy_name_token(token, s, sizeof(s), true);
-    s[AP_MAX_NAME_SIZE] = 0;
-    show(ap, s, type, port);
-}
-
-// print the value of all variables
-void AP_Param::show_all(AP_HAL::BetterStream *port, bool showKeyValues)
-{
-    ParamToken token;
-    AP_Param *ap;
-    enum ap_var_type type;
-
-    for (ap=AP_Param::first(&token, &type);
-         ap;
-         ap=AP_Param::next_scalar(&token, &type)) {
-        if (showKeyValues) {
-            port->printf("Key %i: Index %i: GroupElement %i  :  ", token.key, token.idx, token.group_element);
-        }
-        show(ap, token, type, port);
     }
 }
 
@@ -1723,9 +1758,6 @@ void AP_Param::set_float(float value, enum ap_var_type var_type)
 }
 
 
-#if HAL_OS_POSIX_IO == 1
-#include <stdio.h>
-
 /*
   parse a parameter file line
  */
@@ -1751,14 +1783,13 @@ bool AP_Param::parse_param_line(char *line, char **vname, float &value)
     return true;
 }
 
-/*
-  load a default set of parameters from a file
- */
-bool AP_Param::load_defaults_file(const char *filename, bool panic_on_error)
+
+#if HAL_OS_POSIX_IO == 1
+#include <stdio.h>
+
+// increments num_defaults for each default found in filename
+bool AP_Param::count_defaults_in_file(const char *filename, uint16_t &num_defaults)
 {
-    if (filename == nullptr) {
-        return false;
-    }
     FILE *f = fopen(filename, "r");
     if (f == nullptr) {
         return false;
@@ -1768,26 +1799,88 @@ bool AP_Param::load_defaults_file(const char *filename, bool panic_on_error)
     /*
       work out how many parameter default structures to allocate
      */
-    uint16_t num_defaults = 0;
     while (fgets(line, sizeof(line)-1, f)) {
         char *pname;
         float value;
         if (!parse_param_line(line, &pname, value)) {
             continue;
         }
-        if (!find_def_value_ptr(pname)) {
-            if (panic_on_error) {
-                fclose(f);
-                ::printf("invalid param %s in defaults file\n", pname);
-                AP_HAL::panic("AP_Param: Invalid param in defaults file");
-                return false;
-            } else {
-                continue;
-            }
+        enum ap_var_type var_type;
+        if (!find(pname, &var_type)) {
+            continue;
         }
         num_defaults++;
     }
+
     fclose(f);
+
+    return true;
+}
+
+bool AP_Param::read_param_defaults_file(const char *filename, bool last_pass)
+{
+    FILE *f = fopen(filename, "r");
+    if (f == nullptr) {
+        AP_HAL::panic("AP_Param: Failed to re-open defaults file");
+        return false;
+    }
+
+    uint16_t idx = 0;
+    char line[100];
+    while (fgets(line, sizeof(line)-1, f)) {
+        char *pname;
+        float value;
+        if (!parse_param_line(line, &pname, value)) {
+            continue;
+        }
+        enum ap_var_type var_type;
+        AP_Param *vp = find(pname, &var_type);
+        if (!vp) {
+            if (last_pass) {
+                ::printf("Ignored unknown param %s in defaults file %s\n",
+                         pname, filename);
+                hal.console->printf(
+                         "Ignored unknown param %s in defaults file %s\n",
+                         pname, filename);
+            }
+            continue;
+        }
+        param_overrides[idx].object_ptr = vp;
+        param_overrides[idx].value = value;
+        idx++;
+        if (!vp->configured_in_storage()) {
+            vp->set_float(value, var_type);
+        }
+    }
+    fclose(f);
+    return true;
+}
+
+/*
+  load a default set of parameters from a file
+ */
+bool AP_Param::load_defaults_file(const char *filename, bool last_pass)
+{
+    if (filename == nullptr) {
+        return false;
+    }
+
+    char *mutable_filename = strdup(filename);
+    if (mutable_filename == nullptr) {
+        AP_HAL::panic("AP_Param: Failed to allocate mutable string");
+    }
+
+    uint16_t num_defaults = 0;
+    char *saveptr = nullptr;
+    for (char *pname = strtok_r(mutable_filename, ",", &saveptr);
+         pname != nullptr;
+         pname = strtok_r(nullptr, ",", &saveptr)) {
+        if (!count_defaults_in_file(pname, num_defaults)) {
+            free(mutable_filename);
+            return false;
+        }
+    }
+    free(mutable_filename);
 
     if (param_overrides != nullptr) {
         free(param_overrides);
@@ -1800,41 +1893,20 @@ bool AP_Param::load_defaults_file(const char *filename, bool panic_on_error)
         return false;
     }
 
-    /* 
-       re-open to avoid possible seek issues with NuttX
-     */
-    f = fopen(filename, "r");
-    if (f == nullptr) {
-        AP_HAL::panic("AP_Param: Failed to re-open defaults file");
-        return false;
+    saveptr = nullptr;
+    mutable_filename = strdup(filename);
+    if (mutable_filename == nullptr) {
+        AP_HAL::panic("AP_Param: Failed to allocate mutable string");
     }
-
-    uint16_t idx = 0;
-    while (fgets(line, sizeof(line)-1, f)) {
-        char *pname;
-        float value;
-        if (!parse_param_line(line, &pname, value)) {
-            continue;
-        }
-        const float *def_value_ptr = find_def_value_ptr(pname);
-        if (!def_value_ptr) {
-            continue;
-        }
-        param_overrides[idx].def_value_ptr = def_value_ptr;
-        param_overrides[idx].value = value;
-        idx++;
-        enum ap_var_type var_type;
-        AP_Param *vp = AP_Param::find(pname, &var_type);
-        if (!vp) {
-            fclose(f);
-            AP_HAL::panic("AP_Param: Failed to set param default");
+    for (char *pname = strtok_r(mutable_filename, ",", &saveptr);
+         pname != nullptr;
+         pname = strtok_r(nullptr, ",", &saveptr)) {
+        if (!read_param_defaults_file(pname, last_pass)) {
+            free(mutable_filename);
             return false;
         }
-        if (!vp->configured_in_storage()) {
-            vp->set_float(value, var_type);
-        }
     }
-    fclose(f);
+    free(mutable_filename);
 
     num_param_overrides = num_defaults;
 
@@ -1843,13 +1915,140 @@ bool AP_Param::load_defaults_file(const char *filename, bool panic_on_error)
 
 #endif // HAL_OS_POSIX_IO
 
+/*
+  count the number of embedded parameter defaults
+ */
+bool AP_Param::count_embedded_param_defaults(uint16_t &count)
+{
+    const volatile char *ptr = param_defaults_data.data;
+    uint16_t length = param_defaults_data.length;
+    count = 0;
+    
+    while (length) {
+        char line[100];
+        char *pname;
+        float value;
+        uint16_t i;
+        uint16_t n = MIN(length, sizeof(line)-1);
+        for (i=0;i<n;i++) {
+            if (ptr[i] == '\n') {
+                break;
+            }
+        }
+        if (i == n) {
+            // no newline
+            break;
+        }
+        
+        memcpy(line, (void *)ptr, i);
+        line[i] = 0;
+
+        length -= i+1;
+        ptr += i+1;
+        
+        if (line[0] == '#' || line[0] == 0) {
+            continue;
+        }
+
+        if (!parse_param_line(line, &pname, value)) {
+            continue;
+        }
+
+        enum ap_var_type var_type;
+        if (!find(pname, &var_type)) {
+            continue;
+        }
+
+        count++;
+    }
+    return true;
+}
+
+/*
+ * load a default set of parameters from a embedded parameter region
+ * @last_pass: if this is the last pass on defaults - unknown parameters are
+ *             ignored but if this is set a warning will be emitted
+ */
+void AP_Param::load_embedded_param_defaults(bool last_pass)
+{
+    if (param_overrides != nullptr) {
+        free(param_overrides);
+        param_overrides = nullptr;
+    }
+    
+    num_param_overrides = 0;
+    uint16_t num_defaults = 0;
+    if (!count_embedded_param_defaults(num_defaults)) {
+        return;
+    }
+
+    param_overrides = new param_override[num_defaults];
+    if (param_overrides == nullptr) {
+        AP_HAL::panic("AP_Param: Failed to allocate overrides");
+        return;
+    }
+    
+    const volatile char *ptr = param_defaults_data.data;
+    uint16_t length = param_defaults_data.length;
+    uint16_t idx = 0;
+    
+    while (length) {
+        char line[100];
+        char *pname;
+        float value;
+        uint16_t i;
+        uint16_t n = MIN(length, sizeof(line)-1);
+        for (i=0;i<n;i++) {
+            if (ptr[i] == '\n') {
+                break;
+            }
+        }
+        if (i == n) {
+            // no newline
+            break;
+        }
+        memcpy(line, (void*)ptr, i);
+        line[i] = 0;
+        
+        length -= i+1;
+        ptr += i+1;
+
+        if (line[0] == '#' || line[0] == 0) {
+            continue;
+        }
+        
+        if (!parse_param_line(line, &pname, value)) {
+            continue;
+        }
+        enum ap_var_type var_type;
+        AP_Param *vp = find(pname, &var_type);
+        if (!vp) {
+            if (last_pass) {
+                ::printf("Ignored unknown param %s from embedded region (offset=%u)\n",
+                         pname, ptr - param_defaults_data.data);
+                hal.console->printf(
+                         "Ignored unknown param %s from embedded region (offset=%u)\n",
+                         pname, ptr - param_defaults_data.data);
+            }
+            continue;
+        }
+        param_overrides[idx].object_ptr = vp;
+        param_overrides[idx].value = value;
+        idx++;
+        if (!vp->configured_in_storage()) {
+            vp->set_float(value, var_type);
+        }
+    }
+    num_param_overrides = num_defaults;
+}
+
 /* 
    find a default value given a pointer to a default value in flash
  */
-float AP_Param::get_default_value(const float *def_value_ptr)
+float AP_Param::get_default_value(const AP_Param *vp, const float *def_value_ptr)
 {
     for (uint16_t i=0; i<num_param_overrides; i++) {
-        if (def_value_ptr == param_overrides[i].def_value_ptr) {
+        if (vp == param_overrides[i].object_ptr) {
             return param_overrides[i].value;
         }
     }
@@ -1868,7 +2067,7 @@ void AP_Param::send_parameter(const char *name, enum ap_var_type var_type, uint8
     }
     if (var_type != AP_PARAM_VECTOR3F) {
         // nice and simple for scalar types
-        GCS_MAVLINK::send_parameter_value_all(name, var_type, cast_to_float(var_type));
+        gcs().send_parameter_value(name, var_type, cast_to_float(var_type));
         return;
     }
 
@@ -1883,29 +2082,34 @@ void AP_Param::send_parameter(const char *name, enum ap_var_type var_type, uint8
     char &name_axis = name2[strlen(name)-1];
     
     name_axis = 'X';
-    GCS_MAVLINK::send_parameter_value_all(name2, AP_PARAM_FLOAT, v.x);
+    gcs().send_parameter_value(name2, AP_PARAM_FLOAT, v.x);
     name_axis = 'Y';
-    GCS_MAVLINK::send_parameter_value_all(name2, AP_PARAM_FLOAT, v.y);
+    gcs().send_parameter_value(name2, AP_PARAM_FLOAT, v.y);
     name_axis = 'Z';
-    GCS_MAVLINK::send_parameter_value_all(name2, AP_PARAM_FLOAT, v.z);
+    gcs().send_parameter_value(name2, AP_PARAM_FLOAT, v.z);
 }
 
 /*
-  return count of all scalar parameters
+  return count of all scalar parameters.
+  Note that this function may be called from the IO thread, so needs
+  to be thread safe
  */
 uint16_t AP_Param::count_parameters(void)
 {
     // if we haven't cached the parameter count yet...
-    if (0 == _parameter_count) {
+    uint16_t ret = _parameter_count;
+    if (0 == ret) {
         AP_Param  *vp;
         AP_Param::ParamToken token;
 
-        vp = AP_Param::first(&token, nullptr);
-        do {
-            _parameter_count++;
-        } while (nullptr != (vp = AP_Param::next_scalar(&token, nullptr)));
+        for (vp = AP_Param::first(&token, nullptr);
+             vp != nullptr;
+             vp = AP_Param::next_scalar(&token, nullptr)) {
+            ret++;
+        }
+        _parameter_count = ret;
     }
-    return _parameter_count;
+    return ret;
 }
 
 /*
@@ -1937,3 +2141,120 @@ bool AP_Param::set_default_by_name(const char *name, float value)
     // not a supported type
     return false;
 }
+
+/*
+  set a value by name
+ */
+bool AP_Param::set_by_name(const char *name, float value)
+{
+    enum ap_var_type vtype;
+    AP_Param *vp = find(name, &vtype);
+    if (vp == nullptr) {
+        return false;
+    }
+    switch (vtype) {
+    case AP_PARAM_INT8:
+        ((AP_Int8 *)vp)->set(value);
+        return true;
+    case AP_PARAM_INT16:
+        ((AP_Int16 *)vp)->set(value);
+        return true;
+    case AP_PARAM_INT32:
+        ((AP_Int32 *)vp)->set(value);
+        return true;
+    case AP_PARAM_FLOAT:
+        ((AP_Float *)vp)->set(value);
+        return true;
+    default:
+        break;
+    }
+    // not a supported type
+    return false;
+}
+
+/*
+  set and save a value by name
+ */
+bool AP_Param::set_and_save_by_name(const char *name, float value)
+{
+    enum ap_var_type vtype;
+    AP_Param *vp = find(name, &vtype);
+    if (vp == nullptr) {
+        return false;
+    }
+    switch (vtype) {
+    case AP_PARAM_INT8:
+        ((AP_Int8 *)vp)->set_and_save(value);
+        return true;
+    case AP_PARAM_INT16:
+        ((AP_Int16 *)vp)->set_and_save(value);
+        return true;
+    case AP_PARAM_INT32:
+        ((AP_Int32 *)vp)->set_and_save(value);
+        return true;
+    case AP_PARAM_FLOAT:
+        ((AP_Float *)vp)->set_and_save(value);
+        return true;
+    default:
+        break;
+    }
+    // not a supported type
+    return false;
+}
+
+#if AP_PARAM_KEY_DUMP
+/*
+  do not remove this show_all() code, it is essential for debugging
+  and creating conversion tables
+ */
+
+// print the value of all variables
+void AP_Param::show(const AP_Param *ap, const char *s,
+                    enum ap_var_type type, AP_HAL::BetterStream *port)
+{
+    switch (type) {
+    case AP_PARAM_INT8:
+        port->printf("%s: %d\n", s, (int)((AP_Int8 *)ap)->get());
+        break;
+    case AP_PARAM_INT16:
+        port->printf("%s: %d\n", s, (int)((AP_Int16 *)ap)->get());
+        break;
+    case AP_PARAM_INT32:
+        port->printf("%s: %ld\n", s, (long)((AP_Int32 *)ap)->get());
+        break;
+    case AP_PARAM_FLOAT:
+        port->printf("%s: %f\n", s, (double)((AP_Float *)ap)->get());
+        break;
+    default:
+        break;
+    }
+}
+
+// print the value of all variables
+void AP_Param::show(const AP_Param *ap, const ParamToken &token,
+                    enum ap_var_type type, AP_HAL::BetterStream *port)
+{
+    char s[AP_MAX_NAME_SIZE+1];
+    ap->copy_name_token(token, s, sizeof(s), true);
+    s[AP_MAX_NAME_SIZE] = 0;
+    show(ap, s, type, port);
+}
+
+// print the value of all variables
+void AP_Param::show_all(AP_HAL::BetterStream *port, bool showKeyValues)
+{
+    ParamToken token;
+    AP_Param *ap;
+    enum ap_var_type type;
+
+    for (ap=AP_Param::first(&token, &type);
+         ap;
+         ap=AP_Param::next_scalar(&token, &type)) {
+        if (showKeyValues) {
+            port->printf("Key %i: Index %i: GroupElement %i  :  ", token.key, token.idx, token.group_element);
+        }
+        show(ap, token, type, port);
+    }
+}
+#endif // AP_PARAM_KEY_DUMP
+

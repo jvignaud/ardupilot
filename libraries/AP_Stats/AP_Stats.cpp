@@ -1,6 +1,7 @@
 #include "AP_Stats.h"
 
 #include <AP_Math/AP_Math.h>
+#include <AP_RTC/AP_RTC.h>
 
 const extern AP_HAL::HAL& hal;
 
@@ -10,27 +11,31 @@ const AP_Param::GroupInfo AP_Stats::var_info[] = {
     // @Param: _BOOTCNT
     // @DisplayName: Boot Count
     // @Description: Number of times board has been booted
+    // @ReadOnly: True
     // @User: Standard
     AP_GROUPINFO("_BOOTCNT",    0, AP_Stats, params.bootcount, 0),
 
     // @Param: _FLTTIME
     // @DisplayName: Total FlightTime
     // @Description: Total FlightTime (seconds)
-    // @Units: seconds
+    // @Units: s
+    // @ReadOnly: True
     // @User: Standard
     AP_GROUPINFO("_FLTTIME",    1, AP_Stats, params.flttime, 0),
 
     // @Param: _RUNTIME
     // @DisplayName: Total RunTime
     // @Description: Total time autopilot has run
-    // @Units: seconds
+    // @Units: s
+    // @ReadOnly: True
     // @User: Standard
     AP_GROUPINFO("_RUNTIME",    2, AP_Stats, params.runtime, 0),
 
     // @Param: _RESET
     // @DisplayName: Reset time
     // @Description: Seconds since January 1st 2016 (Unix epoch+1451606400) since reset (set to 0 to reset statistics)
-    // @Units: seconds
+    // @Units: s
+    // @ReadOnly: True
     // @User: Standard
     AP_GROUPINFO("_RESET",    3, AP_Stats, params.reset, 1),
 
@@ -92,10 +97,14 @@ void AP_Stats::update()
         params.bootcount.set_and_save(params_reset == 0 ? 1 : 0);
         params.flttime.set_and_save(0);
         params.runtime.set_and_save(0);
-        uint32_t system_clock = hal.util->get_system_clock_ms() / 1000;
-        // can't store Unix seconds in a 32-bit float.  Change the
-        // time base to Jan 1st 2016:
-        system_clock -= 1451606400;
+        uint32_t system_clock = 0; // in seconds
+        uint64_t rtc_clock_us;
+        if (AP::rtc().get_utc_usec(rtc_clock_us)) {
+            system_clock = rtc_clock_us / 1000000;
+            // can't store Unix seconds in a 32-bit float.  Change the
+            // time base to Jan 1st 2016:
+            system_clock -= 1451606400;
+        }
         params.reset.set_and_save(system_clock);
         copy_variables_from_parameters();
     }

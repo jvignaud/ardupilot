@@ -49,7 +49,7 @@ bool Plane::stick_mixing_enabled(void)
         }
     }
 
-    if (failsafe.ch3_failsafe && g.short_fs_action == 2) {
+    if (failsafe.rc_failsafe && g.fs_action_short == FS_ACTION_SHORT_FBWA) {
         // don't do stick mixing in FBWA glide mode
         return false;
     }
@@ -218,17 +218,15 @@ void Plane::stabilize_stick_mixing_fbw()
  */
 void Plane::stabilize_yaw(float speed_scaler)
 {
-    if (control_mode == AUTO && flight_stage == AP_Vehicle::FixedWing::FLIGHT_LAND_FINAL) {
-        // in land final setup for ground steering
+    if (landing.is_flaring()) {
+        // in flaring then enable ground steering
         steering_control.ground_steering = true;
     } else {
         // otherwise use ground steering when no input control and we
         // are below the GROUND_STEER_ALT
         steering_control.ground_steering = (channel_roll->get_control_in() == 0 && 
-                                            fabsf(relative_altitude()) < g.ground_steer_alt);
-        if (control_mode == AUTO &&
-                (flight_stage == AP_Vehicle::FixedWing::FLIGHT_LAND_APPROACH ||
-                flight_stage == AP_Vehicle::FixedWing::FLIGHT_LAND_PREFLARE)) {
+                                            fabsf(relative_altitude) < g.ground_steer_alt);
+        if (!landing.is_ground_steering_allowed()) {
             // don't use ground steering on landing approach
             steering_control.ground_steering = false;
         }
@@ -237,12 +235,11 @@ void Plane::stabilize_yaw(float speed_scaler)
 
     /*
       first calculate steering_control.steering for a nose or tail
-      wheel.
-      We use "course hold" mode for the rudder when either in the
-      final stage of landing (when the wings are help level) or when
-      in course hold in FBWA mode (when we are below GROUND_STEER_ALT)
+      wheel. We use "course hold" mode for the rudder when either performing
+      a flare (when the wings are held level) or when in course hold in
+      FBWA mode (when we are below GROUND_STEER_ALT)
      */
-    if ((control_mode == AUTO && flight_stage == AP_Vehicle::FixedWing::FLIGHT_LAND_FINAL) ||
+    if (landing.is_flaring() ||
         (steer_state.hold_course_cd != -1 && steering_control.ground_steering)) {
         calc_nav_yaw_course();
     } else if (steering_control.ground_steering) {
@@ -367,15 +364,25 @@ void Plane::stabilize()
     }
     float speed_scaler = get_speed_scaler();
 
+    if (quadplane.in_tailsitter_vtol_transition()) {
+        /*
+          during transition to vtol in a tailsitter try to raise the
+          nose rapidly while keeping the wings level
+         */
+        nav_pitch_cd = constrain_float((quadplane.tailsitter.transition_angle+5)*100, 5500, 8500),
+        nav_roll_cd = 0;
+    }
+    
     if (control_mode == TRAINING) {
         stabilize_training(speed_scaler);
     } else if (control_mode == ACRO) {
         stabilize_acro(speed_scaler);
-    } else if (control_mode == QSTABILIZE ||
-               control_mode == QHOVER ||
-               control_mode == QLOITER ||
-               control_mode == QLAND ||
-               control_mode == QRTL) {
+    } else if ((control_mode == QSTABILIZE ||
+                control_mode == QHOVER ||
+                control_mode == QLOITER ||
+                control_mode == QLAND ||
+                control_mode == QRTL) &&
+               !quadplane.in_tailsitter_vtol_transition()) {
         quadplane.control_run();
     } else {
         if (g.stick_mixing == STICK_MIXING_FBW && control_mode != STABILIZE) {
@@ -393,7 +400,7 @@ void Plane::stabilize()
       see if we should zero the attitude controller integrators. 
      */
     if (channel_throttle->get_control_in() == 0 &&
-        relative_altitude_abs_cm() < 500 && 
+        fabsf(relative_altitude) < 5.0f && 
         fabsf(barometer.get_climb_rate()) < 0.5f &&
         gps.ground_speed() < 3) {
         // we are low, with no climb rate, and zero throttle, and very
@@ -666,6 +673,15 @@ void Plane::update_load_factor(void)
     }
     aerodynamic_load_factor = 1.0f / safe_sqrt(cosf(radians(demanded_roll)));
 
+    if (quadplane.in_transition() &&
+        (quadplane.options & QuadPlane::OPTION_LEVEL_TRANSITION)) {
+        /*
+          the user has asked for transitions to be kept level to
+          within LEVEL_ROLL_LIMIT
+         */
+        roll_limit_cd = MIN(roll_limit_cd, g.level_roll_limit*100);
+    }
+    
     if (!aparm.stall_prevention) {
         // stall prevention is disabled
         return;
@@ -674,8 +690,13 @@ void Plane::update_load_factor(void)
         // no roll limits when inverted
         return;
     }
+    if (quadplane.tailsitter_active()) {
+        // no limits while hovering
+        return;
+    }
+       
 
-    float max_load_factor = smoothed_airspeed / aparm.airspeed_min;
+    float max_load_factor = smoothed_airspeed / MAX(aparm.airspeed_min, 1);
     if (max_load_factor <= 1) {
         // our airspeed is below the minimum airspeed. Limit roll to
         // 25 degrees

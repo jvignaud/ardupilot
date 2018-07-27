@@ -14,6 +14,7 @@
 #include <systemlib/board_serial.h>
 #include <drivers/drv_gpio.h>
 #include <AP_Math/AP_Math.h>
+#include <AP_BoardConfig/AP_BoardConfig.h>
 
 extern const AP_HAL::HAL& hal;
 
@@ -73,6 +74,10 @@ bool PX4Util::run_debug_shell(AP_HAL::BetterStream *stream)
  */
 enum PX4Util::safety_state PX4Util::safety_switch_state(void)
 {
+#if !HAL_HAVE_SAFETY_SWITCH
+    return AP_HAL::Util::SAFETY_NONE;
+#endif
+
     if (_safety_handle == -1) {
         _safety_handle = orb_subscribe(ORB_ID(safety));
     }
@@ -92,14 +97,6 @@ enum PX4Util::safety_state PX4Util::safety_switch_state(void)
     return AP_HAL::Util::SAFETY_DISARMED;
 }
 
-void PX4Util::set_system_clock(uint64_t time_utc_usec)
-{
-    timespec ts;
-    ts.tv_sec = time_utc_usec/1.0e6f;
-    ts.tv_nsec = (time_utc_usec % 1000000) * 1000;
-    clock_settime(CLOCK_REALTIME, &ts);    
-}
-
 /*
   display PX4 system identifer - board type and serial number
  */
@@ -110,10 +107,16 @@ bool PX4Util::get_system_id(char buf[40])
     get_board_serial(serialid);
 #if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
     const char *board_type = "PX4v1";
+#elif defined(CONFIG_ARCH_BOARD_PX4FMU_V3)
+    const char *board_type = "PX4v3";
 #elif defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
     const char *board_type = "PX4v2";
 #elif defined(CONFIG_ARCH_BOARD_PX4FMU_V4)
     const char *board_type = "PX4v4";
+#elif defined(CONFIG_ARCH_BOARD_PX4FMU_V4PRO)
+    const char *board_type = "PX4v4PRO";
+#elif defined(CONFIG_ARCH_BOARD_AEROFC_V1)
+    const char *board_type = "AEROFCv1";
 #else
     const char *board_type = "PX4v?";
 #endif
@@ -234,21 +237,45 @@ extern "C" {
   allocate DMA-capable memory if possible. Otherwise return normal
   memory.
 */
-void *PX4Util::dma_allocate(size_t size)
+void *PX4Util::malloc_type(size_t size, AP_HAL::Util::Memory_Type mem_type)
 {
-#ifndef CONFIG_ARCH_BOARD_PX4FMU_V1
-    return fat_dma_alloc(size);
+#if !defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
+    if (mem_type == AP_HAL::Util::MEM_DMA_SAFE) {
+        return fat_dma_alloc(size);
+    } else {
+        return calloc(1, size);
+    }
 #else
-    return malloc(size);
+    return calloc(1, size);
 #endif
 }
-void PX4Util::dma_free(void *ptr, size_t size)
+void PX4Util::free_type(void *ptr, size_t size, AP_HAL::Util::Memory_Type mem_type)
 {
-#ifndef CONFIG_ARCH_BOARD_PX4FMU_V1
-    fat_dma_free(ptr, size);
+#if !defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
+    if (mem_type == AP_HAL::Util::MEM_DMA_SAFE) {
+        return fat_dma_free(ptr, size);
+    } else {
+        return free(ptr);
+    }    
 #else
     return free(ptr);
 #endif
 }
+
+extern "C" {
+    int bl_update_main(int argc, char *argv[]);
+};
+
+bool PX4Util::flash_bootloader()
+{
+#if !defined(CONFIG_ARCH_BOARD_AEROFC_V1)
+    if (AP_BoardConfig::px4_start_driver(bl_update_main, "bl_update", "/etc/bootloader/fmu_bl.bin")) {
+        hal.console->printf("updated bootloader\n");
+        return true;
+    }
+#endif
+    return false;
+}
+
 
 #endif // CONFIG_HAL_BOARD == HAL_BOARD_PX4

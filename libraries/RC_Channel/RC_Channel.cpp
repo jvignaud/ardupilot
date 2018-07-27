@@ -14,9 +14,7 @@
  */
 
 /*
- *       RC_Channel.cpp - Radio library for Arduino
- *       Code by Jason Short. DIYDrones.com
- *
+ *       RC_Channel.cpp - class for one RC channel input
  */
 
 #include <stdlib.h>
@@ -29,13 +27,13 @@ extern const AP_HAL::HAL& hal;
 
 #include "RC_Channel.h"
 
-RC_Channel *RC_Channels::channels;
+uint32_t RC_Channel::configured_mask;
 
 const AP_Param::GroupInfo RC_Channel::var_info[] = {
     // @Param: MIN
     // @DisplayName: RC min PWM
-    // @Description: RC minimum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit.
-    // @Units: pwm
+    // @Description: RC minimum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit.
+    // @Units: PWM
     // @Range: 800 2200
     // @Increment: 1
     // @User: Advanced
@@ -43,8 +41,8 @@ const AP_Param::GroupInfo RC_Channel::var_info[] = {
 
     // @Param: TRIM
     // @DisplayName: RC trim PWM
-    // @Description: RC trim (neutral) PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit.
-    // @Units: pwm
+    // @Description: RC trim (neutral) PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit.
+    // @Units: PWM
     // @Range: 800 2200
     // @Increment: 1
     // @User: Advanced
@@ -52,8 +50,8 @@ const AP_Param::GroupInfo RC_Channel::var_info[] = {
 
     // @Param: MAX
     // @DisplayName: RC max PWM
-    // @Description: RC maximum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit.
-    // @Units: pwm
+    // @Description: RC maximum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit.
+    // @Units: PWM
     // @Range: 800 2200
     // @Increment: 1
     // @User: Advanced
@@ -61,15 +59,15 @@ const AP_Param::GroupInfo RC_Channel::var_info[] = {
 
     // @Param: REVERSED
     // @DisplayName: RC reversed
-    // @Description: Reverse servo operation. Set to 0 for normal (forward) operation. Set to 1 to reverse this input channel.
+    // @Description: Reverse channel input. Set to 0 for normal operation. Set to 1 to reverse this input channel.
     // @Values: 0:Normal,1:Reversed
     // @User: Advanced
     AP_GROUPINFO("REVERSED",  4, RC_Channel, reversed, 0),
 
     // @Param: DZ
     // @DisplayName: RC dead-zone
-    // @Description: dead zone around trim or bottom
-    // @Units: pwm
+    // @Description: PWM dead zone in microseconds around trim or bottom
+    // @Units: PWM
     // @Range: 0 200
     // @User: Advanced
     AP_GROUPINFO("DZ",   5, RC_Channel, dead_zone, 0),
@@ -78,95 +76,10 @@ const AP_Param::GroupInfo RC_Channel::var_info[] = {
 };
 
 
-const AP_Param::GroupInfo RC_Channels::var_info[] = {
-    // @Group: 1_
-    // @Path: RC_Channel.cpp
-    AP_SUBGROUPINFO(obj_channels[0], "1_",  1, RC_Channels, RC_Channel),
-
-    // @Group: 2_
-    // @Path: RC_Channel.cpp
-    AP_SUBGROUPINFO(obj_channels[1], "2_",  2, RC_Channels, RC_Channel),
-
-    // @Group: 3_
-    // @Path: RC_Channel.cpp
-    AP_SUBGROUPINFO(obj_channels[2], "3_",  3, RC_Channels, RC_Channel),
-
-    // @Group: 4_
-    // @Path: RC_Channel.cpp
-    AP_SUBGROUPINFO(obj_channels[3], "4_",  4, RC_Channels, RC_Channel),
-
-    // @Group: 5_
-    // @Path: RC_Channel.cpp
-    AP_SUBGROUPINFO(obj_channels[4], "5_",  5, RC_Channels, RC_Channel),
-
-    // @Group: 6_
-    // @Path: RC_Channel.cpp
-    AP_SUBGROUPINFO(obj_channels[5], "6_",  6, RC_Channels, RC_Channel),
-
-    // @Group: 7_
-    // @Path: RC_Channel.cpp
-    AP_SUBGROUPINFO(obj_channels[6], "7_",  7, RC_Channels, RC_Channel),
-
-    // @Group: 8_
-    // @Path: RC_Channel.cpp
-    AP_SUBGROUPINFO(obj_channels[7], "8_",  8, RC_Channels, RC_Channel),
-
-    // @Group: 9_
-    // @Path: RC_Channel.cpp
-    AP_SUBGROUPINFO(obj_channels[8], "9_",  9, RC_Channels, RC_Channel),
-
-    // @Group: 10_
-    // @Path: RC_Channel.cpp
-    AP_SUBGROUPINFO(obj_channels[9], "10_", 10, RC_Channels, RC_Channel),
-
-    // @Group: 11_
-    // @Path: RC_Channel.cpp
-    AP_SUBGROUPINFO(obj_channels[10], "11_", 11, RC_Channels, RC_Channel),
-
-    // @Group: 12_
-    // @Path: RC_Channel.cpp
-    AP_SUBGROUPINFO(obj_channels[11], "12_", 12, RC_Channels, RC_Channel),
-
-    // @Group: 13_
-    // @Path: RC_Channel.cpp
-    AP_SUBGROUPINFO(obj_channels[12], "13_", 13, RC_Channels, RC_Channel),
-
-    // @Group: 14_
-    // @Path: RC_Channel.cpp
-    AP_SUBGROUPINFO(obj_channels[13], "14_", 14, RC_Channels, RC_Channel),
-
-    // @Group: 15_
-    // @Path: RC_Channel.cpp
-    AP_SUBGROUPINFO(obj_channels[14], "15_", 15, RC_Channels, RC_Channel),
-
-    // @Group: 16_
-    // @Path: RC_Channel.cpp
-    AP_SUBGROUPINFO(obj_channels[15], "16_", 16, RC_Channels, RC_Channel),
-    
-    AP_GROUPEND
-};
-
-
 // constructor
 RC_Channel::RC_Channel(void)
 {
     AP_Param::setup_object_defaults(this, var_info);
-}
-
-/*
-  channels group object constructor
- */
-RC_Channels::RC_Channels(void)
-{
-    channels = obj_channels;
-    
-    // set defaults from the parameter table
-    AP_Param::setup_object_defaults(this, var_info);
-
-    // setup ch_in on channels
-    for (uint8_t i=0; i<NUM_RC_CHANNELS; i++) {
-        channels[i].ch_in = i;
-    }
 }
 
 void
@@ -199,7 +112,11 @@ RC_Channel::get_reverse(void) const
 void
 RC_Channel::set_pwm(int16_t pwm)
 {
-    radio_in = pwm;
+    if (has_override()) {
+        radio_in = override_value;
+    } else {
+        radio_in = pwm;
+    }
 
     if (type_in == RC_CHANNEL_TYPE_RANGE) {
         control_in = pwm_to_range();
@@ -209,25 +126,12 @@ RC_Channel::set_pwm(int16_t pwm)
     }
 }
 
-/*
-  call read() and set_pwm() on all channels
- */
+// recompute control values with no deadzone
+// When done this way the control_in value can be used as servo_out
+// to give the same output as input
 void
-RC_Channels::set_pwm_all(void)
+RC_Channel::recompute_pwm_no_deadzone()
 {
-    for (uint8_t i=0; i<NUM_RC_CHANNELS; i++) {
-        channels[i].set_pwm(channels[i].read());
-    }
-}
-
-// read input from APM_RC - create a control_in value, but use a 
-// zero value for the dead zone. When done this way the control_in
-// value can be used as servo_out to give the same output as input
-void
-RC_Channel::set_pwm_no_deadzone(int16_t pwm)
-{
-    radio_in = pwm;
-
     if (type_in == RC_CHANNEL_TYPE_RANGE) {
         control_in = pwm_to_range_dz(0);
     } else {
@@ -257,26 +161,6 @@ int16_t RC_Channel::get_control_mid() const
     }
 }
 
-// ------------------------------------------
-
-void RC_Channel::load_eeprom(void)
-{
-    radio_min.load();
-    radio_trim.load();
-    radio_max.load();
-    reversed.load();
-    dead_zone.load();
-}
-
-void RC_Channel::save_eeprom(void)
-{
-    radio_min.save();
-    radio_trim.save();
-    radio_max.save();
-    reversed.save();
-    dead_zone.save();
-}
-
 /*
   return an "angle in centidegrees" (normally -4500 to 4500) from
   the current radio_in value using the specified dead_zone
@@ -287,14 +171,10 @@ RC_Channel::pwm_to_angle_dz_trim(uint16_t _dead_zone, uint16_t _trim)
     int16_t radio_trim_high = _trim + _dead_zone;
     int16_t radio_trim_low  = _trim - _dead_zone;
 
-    // prevent div by 0
-    if ((radio_trim_low - radio_min) == 0 || (radio_max - radio_trim_high) == 0)
-        return 0;
-
     int16_t reverse_mul = (reversed?-1:1);
-    if (radio_in > radio_trim_high) {
+    if (radio_in > radio_trim_high && radio_max != radio_trim_high) {
         return reverse_mul * ((int32_t)high_in * (int32_t)(radio_in - radio_trim_high)) / (int32_t)(radio_max  - radio_trim_high);
-    } else if (radio_in < radio_trim_low) {
+    } else if (radio_in < radio_trim_low && radio_trim_low != radio_min) {
         return reverse_mul * ((int32_t)high_in * (int32_t)(radio_in - radio_trim_low)) / (int32_t)(radio_trim_low - radio_min);
     } else {
         return 0;
@@ -419,12 +299,6 @@ RC_Channel::percent_input()
     return ret;
 }
 
-void
-RC_Channel::input()
-{
-    radio_in = hal.rcin->read(ch_in);
-}
-
 uint16_t
 RC_Channel::read() const
 {
@@ -439,3 +313,33 @@ bool RC_Channel::in_trim_dz()
     return is_bounded_int32(radio_in, radio_trim - dead_zone, radio_trim + dead_zone);
 }
 
+void RC_Channel::set_override(const uint16_t v, const uint32_t timestamp_us)
+{
+    last_override_time = timestamp_us != 0 ? timestamp_us : AP_HAL::millis();
+    override_value = v;
+}
+
+void RC_Channel::clear_override()
+{
+    last_override_time = 0;
+    override_value = 0;
+}
+
+bool RC_Channel::has_override() const
+{
+    return (override_value > 0) && ((AP_HAL::millis() - last_override_time) < *RC_Channels::override_timeout * 1000);
+}
+
+bool RC_Channel::min_max_configured() const
+{
+    if (configured_mask & (1U << ch_in)) {
+        return true;
+    }
+    if (radio_min.configured() && radio_max.configured()) {
+        // once a channel is known to be configured it has to stay
+        // configured due to the nature of AP_Param
+        configured_mask |= (1U<<ch_in);
+        return true;
+    }
+    return false;
+}

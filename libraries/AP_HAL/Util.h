@@ -18,8 +18,9 @@ public:
     void clear_capabilities(uint64_t cap) { capabilities &= ~(cap); }
     uint64_t get_capabilities() const { return capabilities; }
 
-    virtual const char* get_custom_log_directory() { return nullptr; }
+    virtual const char* get_custom_log_directory() const { return nullptr; }
     virtual const char* get_custom_terrain_directory() const { return nullptr;  }
+    virtual const char *get_custom_storage_directory() const { return nullptr;  }
 
     // get path to custom defaults file for AP_Param
     virtual const char* get_custom_defaults_file() const {
@@ -41,21 +42,17 @@ public:
     virtual enum safety_state safety_switch_state(void) { return SAFETY_NONE; }
 
     /*
-      set system clock in UTC microseconds
+      set HW RTC in UTC microseconds
      */
-    virtual void set_system_clock(uint64_t time_utc_usec) {}
+    virtual void set_hw_rtc(uint64_t time_utc_usec);
 
     /*
-      get system clock in UTC milliseconds
+      get system clock in UTC microseconds
      */
-    uint64_t get_system_clock_ms() const;
+    virtual uint64_t get_hw_rtc() const;
 
-    /*
-      get system time in UTC hours, minutes, seconds and milliseconds
-     */
-    void get_system_clock_utc(int32_t &hour, int32_t &min, int32_t &sec, int32_t &ms) const;
-
-    uint32_t get_time_utc(int32_t hour, int32_t min, int32_t sec, int32_t ms) const;
+    // overwrite bootloader (probably with one from ROMFS)
+    virtual bool flash_bootloader() { return false; }
 
     /*
       get system identifier (eg. serial number)
@@ -65,11 +62,6 @@ public:
       terminated
      */
     virtual bool get_system_id(char buf[40]) { return false; }
-
-    /**
-       how much free memory do we have in bytes. If unknown return 4096
-     */
-    virtual uint32_t available_memory(void) { return 4096; }
 
     /**
        return commandline arguments, if available
@@ -86,7 +78,7 @@ public:
     /*
       return a stream for access to a system shell, if available
      */
-    virtual AP_HAL::Stream *get_shell_stream() { return nullptr; }
+    virtual AP_HAL::BetterStream *get_shell_stream() { return nullptr; }
 
     /* Support for an imu heating system */
     virtual void set_imu_temp(float current) {}
@@ -112,12 +104,21 @@ public:
     virtual Semaphore *new_semaphore(void) { return nullptr; }
 
     // allocate and free DMA-capable memory if possible. Otherwise return normal memory
-    virtual void *dma_allocate(size_t size) { return malloc(size); }
-    virtual void dma_free(void *ptr, size_t size) { return free(ptr); }
-    
+    enum Memory_Type {
+        MEM_DMA_SAFE,
+        MEM_FAST
+    };
+    virtual void *malloc_type(size_t size, Memory_Type mem_type) { return calloc(1, size); }
+    virtual void free_type(void *ptr, size_t size, Memory_Type mem_type) { return free(ptr); }
+
+    /**
+       how much free memory do we have in bytes. If unknown return 4096
+     */
+    virtual uint32_t available_memory(void) { return 4096; }
 protected:
     // we start soft_armed false, so that actuators don't send any
     // values until the vehicle code has fully started
     bool soft_armed = false;
     uint64_t capabilities = 0;
+
 };
