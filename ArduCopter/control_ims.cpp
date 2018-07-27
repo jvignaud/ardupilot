@@ -63,7 +63,8 @@ void Copter::ims_run()
     get_pilot_desired_lean_angles(channel_roll->get_control_in(), channel_pitch->get_control_in(), Drone_RPi.target_roll, Drone_RPi.target_pitch, Drone_RPi.get_angle_max_roulis_tangage()*100);
 
     // Récupération de la consigne en lacet (en centidegrés par seconde)
-    Drone_RPi.set_target_yaw_rate(Drone_RPi.get_vitesse_max_lacet() / 67.0 *  get_pilot_desired_yaw_rate(channel_yaw->get_control_in()));  // 67.0 est la vitesse maximale par défaut du lacet
+    // g.acro_yaw_p : vitesse max lacet
+    Drone_RPi.set_target_yaw_rate(Drone_RPi.get_vitesse_max_lacet() / g.acro_yaw_p *  get_pilot_desired_yaw_rate(channel_yaw->get_control_in()));
 
     // Récupération de la consigne en poussée (valeur entre 0 et 1)
     // Le choix entre la poussée exponentielle et linéaire se faire dans le fichier mis en argument dans la déclaration de la classe Quadri
@@ -126,8 +127,8 @@ void Copter::ims_run()
     // ---------------------------------------------------------------------
 
     // Rotation des moteurs en fonction de la valeur en pwm des commandes
-    motors.output_test(Drone_RPi.w1_index,Drone_RPi.get_w1_pwm());    // output_test : Fait tourner les moteurs à une valeur de PWM spécifiée : void output_test(uint8_t motor_seq, int16_t pwm);
-    motors.output_test(Drone_RPi.w2_index,Drone_RPi.get_w2_pwm());    // motor_seq est le numéro du moteur (va de 1 au nombre de moteurs total)
-    motors.output_test(Drone_RPi.w3_index,Drone_RPi.get_w3_pwm());    // pwm est la valeur pwm envoyée en sortie (normalement situé entre 1000 et 2000)
-    motors.output_test(Drone_RPi.w4_index,Drone_RPi.get_w4_pwm());
+    motors.output_test(Drone_RPi.w1_index,Drone_RPi.get_w1_pwm());    // output_test : Fait tourner les moteurs à une valeur de PWM spécifiée : 
+    motors.output_test(Drone_RPi.w2_index,Drone_RPi.get_w2_pwm());    // void output_test(uint8_t motor_seq, int16_t pwm);
+    motors.output_test(Drone_RPi.w3_index,Drone_RPi.get_w3_pwm());    // motor_seq est le numéro du moteur (va de 1 au nombre de moteurs total)
+    motors.output_test(Drone_RPi.w4_index,Drone_RPi.get_w4_pwm());    // pwm est la valeur pwm envoyée en sortie (normalement situé entre 1000 et 2000)
 }
