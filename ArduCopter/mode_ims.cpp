@@ -62,7 +62,8 @@ void Copter::ModeIMS::run()
     get_pilot_desired_lean_angles(Drone_RPi.target_roll, Drone_RPi.target_pitch, aparm.angle_max, Drone_RPi.get_angle_max_roulis_tangage()*100);
 
     // Récupération de la consigne en lacet (en centidegrés par seconde) (67.0 est la vitesse maximale par défaut du lacet)
-    Drone_RPi.set_target_yaw_rate(Drone_RPi.get_vitesse_max_lacet() / 67.0 *  get_pilot_desired_yaw_rate(channel_yaw->get_control_in()));  
+    // g.acro_yaw_p à voir... : vitesse lacet max
+    Drone_RPi.set_target_yaw_rate(Drone_RPi.get_vitesse_max_lacet() / g.acro_yaw_p *  get_pilot_desired_yaw_rate(channel_yaw->get_control_in()));  
 
     // Récupération de la consigne en poussée (valeur entre 0 et 1)
     // Le choix entre la poussée exponentielle et linéaire se faire dans le fichier mis en argument dans la déclaration de la classe Quadri
