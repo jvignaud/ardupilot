@@ -29,8 +29,7 @@ angle_max_roulis_tangage = 20; %en °
 vitesse_max_lacet = 45; %en °/s
 
 % nom du fichier log
-nom_fichier = "IMS_test";
-
+nom_fichier = "IMS";
 
 % booleen qui permet de rendre la poussee exponentielle si "true", et lineaire sinon
 poussee_exponentielle = "false";

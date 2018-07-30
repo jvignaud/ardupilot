@@ -8,6 +8,8 @@
 
 %% commandes de base
 close all, clc, clear all, format long;
+% Commande pour activer les fonctions de transfert pour Octave
+%pkg load control 
 p = tf('s');
 %% initialisation
 valeurs_initiales
@@ -16,7 +18,7 @@ valeurs_initiales
 rotation_max = calcul_rotation_max(KV,niveau_tension_batterie); % en rad/s
 
 %% Calculs des moments d'inertie
-moment_inertie
+moments_inertie
 
 %% Calculs du coefficient de trainee
 coefficient_de_poussee
