@@ -5,4 +5,3 @@ function masse_max_poussee = calcul_masse_arrachage(coefficient_poussee,abscisse
     g = 9.80665; % m/s²
     masse_max_poussee = 4*(coefficient_poussee * abscisse_max)/g;
 end
-

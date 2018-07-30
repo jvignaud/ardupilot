@@ -17,4 +17,3 @@ function [cxn,cxn_1,cxn_2,cyn_1,cyn_2] = calcul_fct_smooth(pulstation_coupure,co
     cyn_1= -den(2)/den(1);
     cyn_2 = -den(3)/den(1);
 end
-

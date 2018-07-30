@@ -21,6 +21,9 @@ rotation_max = calcul_rotation_max(KV,niveau_tension_batterie); % en rad/s
 moments_inertie
 
 %% Calculs du coefficient de trainee
+coefficient_de_trainee
+
+%% Calculs du coefficient de poussee
 coefficient_de_poussee
 
 %% Calculs des correcteurs

@@ -1,6 +1,6 @@
 function [cxn,cxn_1,cxn_2,cyn_1,cyn_2] = calcul_correcteur_PID(omega_u,omega_i,Marge_phase,G,Frequence)
-%CALCUL_CORRECTEUR_PID Summary of this function goes here
-%   Detailed explanation goes here
+%CALCUL_CORRECTEUR_PID
+%   Calcul de la suite pour les correcteurs PID
 F = Frequence;
 wu = omega_u;
 wi = omega_i;
@@ -38,4 +38,3 @@ cxn_2 = num(3)/den(1);
 cyn_1 = -den(2)/den(1);
 cyn_2 = -den(3)/den(1);
 end
-

@@ -14,4 +14,3 @@ function coefficient_trainee = calcul_coef_trainee(temps_releve, rotation_maxima
     %% coefficient de trainée
     coefficient_trainee = pi*moment_inertie_z/(2*rotation_mi_puissance^2*moyenne_quart_periode^2);
 end
-

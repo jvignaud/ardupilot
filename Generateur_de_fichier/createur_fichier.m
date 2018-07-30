@@ -26,7 +26,7 @@ fprintf(fileID,'%.21f\n',coef_trainee);
 fprintf(fileID,'\nCoefficient de poussee :\n');
 fprintf(fileID,'%.21f\n',coef_poussee);
 
-% coefficient de pouss�e
+% envergure
 fprintf(fileID,'\nEnvergure du drone :\n');
 fprintf(fileID,'%.4f\n',envergure);
 
