@@ -14,4 +14,3 @@ function [abscisse_poussee,ordonnee_poussee] = calcul_abscisse_ordonnee_poussee(
     force_poussee_moteurs1 = force_poussee1 / nbMoteurs; % force par moteurs
     ordonnee_poussee = force_poussee_moteurs1.'; % transposée
 end
-

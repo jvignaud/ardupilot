@@ -10,4 +10,3 @@ function moment_inertie = calcul_moment_inertie(periode, masse, longueur_bras_ou
     L = longueur_bras_ou_envergure + longueur_fil_suspendu; % longueur entre le centre d'inertie du drone et le point de suspension
     moment_inertie = (m*g*L*T^2)/(4*pi^2)-m*L^2;
 end
-

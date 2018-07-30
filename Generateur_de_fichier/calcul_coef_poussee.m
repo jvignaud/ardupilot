@@ -5,4 +5,3 @@ function coefficient_poussee = calcul_coef_poussee(rot_carree,force_par_moteur)
 %   par un moteur
 coefficient_poussee = rot_carree \ force_par_moteur;
 end
-
