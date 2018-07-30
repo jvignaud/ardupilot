@@ -5,7 +5,7 @@ NomFichier='../ParametresDrone.conf';
 % Masse du drone
 masse_drone = 1.611; % en kg
 
-% tour/min/V : indique sur le moteur
+% tour/min/V : indiqué sur le moteur
 KV = 1150; 
 % en V, tension relevee sur la batterie pour les tests
 niveau_tension_batterie = 11.57;
@@ -16,20 +16,22 @@ envergure = 0.256 ;
 longueur_bras = 0.375 ;
 
 % frequence d'echantillonnage (400Hz pour se conformer a la boucle rapide de Ardupilot)
-F = 400;        %en Hertz 
+F = 400;        %en Hertz
+% période d'échantillonage
+Te=1/F; % en s
 
 % correcteurs roll/pitch/yaw
 wu = 20;        %rad/s
 wi = wu/3;     %rad/s
 Mphase = 60;    %degres
 offset_pwm = 0; %en % (entier)
-angle_max_roulis_tangage = 20; %en Â°
-vitesse_max_lacet = 45; %en Â°/s
+angle_max_roulis_tangage = 20; %en °
+vitesse_max_lacet = 45; %en °/s
 
 % nom du fichier log
 nom_fichier = "IMS_test";
 
-Te=1/F;
+
 % booleen qui permet de rendre la poussee exponentielle si "true", et lineaire sinon
 poussee_exponentielle = "false";
 
