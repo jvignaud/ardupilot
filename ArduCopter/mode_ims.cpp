@@ -1,10 +1,10 @@
 /*
  * control_ims.cpp
  *
- * Créé le: 15 Février 2017
+ * Créé le : 15 Février 2017
  *      Auteur : Daniel Monier-Reyes
  * 
- * Modifié  le : 9 Juillet 2018 
+ * Modifié le : 9 Juillet 2018 
  *          par : Jamy Vignaud
  * 
  * Routines d'initialisation et d'appel pour le mode de vol IMS
